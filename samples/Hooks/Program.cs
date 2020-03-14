@@ -22,7 +22,7 @@ namespace Hooks
                 .Decorate<ITransactor, OnDeleteTransactor>()
                 .Decorate<ITransactor, PreCommitTransactor>()
                 .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) 
-                    => Console.WriteLine($"{change.ChangeType} of object with id {change.Id}")))
+                    => Console.WriteLine($"{change.Type} of object with id {change.Oid}")))
                 .BuildServiceProvider();
 
             var transactor = services.GetRequiredService<ITransactor>();

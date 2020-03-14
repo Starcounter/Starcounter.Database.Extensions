@@ -13,9 +13,9 @@ namespace Starcounter.Database.Extensions
 
             public void ExecutePreCommitHooks(PreCommitOptions options)
             {
-                foreach (var change in ChangeTracker.Changes.Where(c => c.ChangeType != ChangeType.Delete))
+                foreach (var change in ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
                 {
-                    var proxy = Get<object>(change.Id);
+                    var proxy = Get<object>(change.Oid);
                     var realType = proxy.GetType().BaseType;
 
                     if (options.Delegates.TryGetValue(realType, out Action<IDatabaseContext, Change> action))
