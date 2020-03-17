@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
 {
-    public sealed class OnDeleteTransactorTests
+    public sealed class OnDeleteTransactorTests : ServicedTests
     {
         public class Person : IDeleteAware
         {
@@ -15,7 +15,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void TriggerCallbackWhenDeleted()
         {
-            var transactor = UnitTest1.CreateServices(
+            var transactor = CreateServices(
                 s => s.Decorate<ITransactor, OnDeleteTransactor>())
                 .GetRequiredService<ITransactor>();
 
