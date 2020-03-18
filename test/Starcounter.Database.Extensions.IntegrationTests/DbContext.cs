@@ -48,7 +48,19 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         public IChangeTracker ChangeTracker => new DbContextChangeTracker(_changes);
 
-        public void Delete(object obj) => _storage.Delete(obj);
+        public void Delete(object obj)
+        {
+            var id = _storage.Delete(obj);
+
+            // If it's in the change set already, it must be an insert.
+            // If so, just remove it. Otherwise, generate new change.
+
+            var removed = _changes.Remove(id, out Tuple<object, ChangeType> _);
+            if (!removed)
+            {
+                _changes[id] = Tuple.Create(obj, ChangeType.Delete);
+            }
+        }
 
         public new bool Equals(object objA, object objB) => object.ReferenceEquals(objA, objB);
 
