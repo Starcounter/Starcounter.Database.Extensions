@@ -6,7 +6,7 @@ using Starcounter.Database.ChangeTracking;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
 {
-    class DbContext : IDatabaseContext
+    class DbContext : IDatabaseContext, IDisposable
     {
         readonly Dictionary<ulong, Tuple<object, ChangeType>> _changes
             = new Dictionary<ulong, Tuple<object, ChangeType>>();
@@ -14,6 +14,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         readonly DbStorage _storage;
 
         readonly DbProxyTypeGenerator _proxyTypeGenerator;
+
+        internal Action<IDatabaseContext> DisposeCallback { get; set; }
 
         public DbContext(DbStorage storage, DbProxyTypeGenerator proxyTypeGenerator)
         {
@@ -84,5 +86,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         public ISqlResult<T> Sql<T>(string query, params object[] values) => throw new NotImplementedException();
+
+        public void Dispose() => DisposeCallback?.Invoke(this);
     }
 }
