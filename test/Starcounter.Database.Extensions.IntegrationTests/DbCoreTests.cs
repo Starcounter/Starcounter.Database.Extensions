@@ -13,7 +13,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public void ServiceSetupYieldExpectedImplementations()
         {
             var transactor = CreateServices().GetRequiredService<ITransactor>();
-            var context = transactor.Transact(db => db.GetType());
+            var context = transactor.Transact(db => db);
 
             Assert.IsType<DbTransactor>(transactor);
             Assert.IsType<DbContext>(context);
