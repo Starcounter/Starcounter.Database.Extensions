@@ -65,5 +65,21 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 Assert.Throws<ArgumentOutOfRangeException>(() => db.Get<Person>(id));
             });
         }
+
+        [Fact]
+        public void InsertThenDeleteResultInNoChanges()
+        {
+            var t = CreateServices().GetRequiredService<ITransactor>();
+
+            var changes = t.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                db.Delete(p);
+
+                return db.ChangeTracker.Changes;
+            });
+
+            Assert.Empty(changes);
+        }
     }
 }
