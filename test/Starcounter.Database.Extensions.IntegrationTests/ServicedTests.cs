@@ -9,6 +9,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         {
             var services = new ServiceCollection()
                 .AddSingleton<DbStorage>()
+                .AddSingleton<DbProxyTypeGenerator>()
                 .AddSingleton<ITransactor, DbTransactor>();
 
             if (configurator != null)

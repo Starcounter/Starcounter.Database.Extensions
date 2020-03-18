@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -14,9 +13,13 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         readonly DbStorage _storage;
 
-        readonly DbProxyTypeGenerator _proxyTypeGenerator = new DbProxyTypeGenerator();
+        readonly DbProxyTypeGenerator _proxyTypeGenerator;
 
-        public DbContext(DbStorage storage) => _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        public DbContext(DbStorage storage, DbProxyTypeGenerator proxyTypeGenerator)
+        {
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            _proxyTypeGenerator = proxyTypeGenerator ?? throw new ArgumentNullException(nameof(proxyTypeGenerator));
+        }
 
         class DbContextChangeTracker : IChangeTracker
         {
