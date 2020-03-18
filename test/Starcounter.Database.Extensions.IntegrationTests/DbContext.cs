@@ -71,15 +71,9 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         public ulong GetOid(object databaseObject) => _storage.GetOid(databaseObject);
 
-        Dictionary<Type, Type> proxyMap = new Dictionary<Type, Type>();
-
         public T Insert<T>() where T : class
         {
-            if (!proxyMap.TryGetValue(typeof(T), out Type proxyType))
-            {
-                proxyType = _proxyTypeGenerator.GenerateProxyType(typeof(T));
-                proxyMap.Add(typeof(T), proxyType);
-            }
+            var proxyType = _proxyTypeGenerator.EnsureProxyType(typeof(T));
 
             var obj = Activator.CreateInstance(proxyType);
 
