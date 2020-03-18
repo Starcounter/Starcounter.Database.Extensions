@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database.ChangeTracking;
 using Xunit;
@@ -80,6 +81,22 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
 
             Assert.Empty(changes);
+        }
+
+        [Fact]
+        public void CoreTransactorDontAllowNesting()
+        {
+            var t = CreateServices().GetRequiredService<ITransactor>();
+
+            Action transact = () => t.Transact(_ => t.Transact(__ => { }));
+            Func<object> transactFunc = () => t.Transact(_ => t.Transact(__ => new object()));
+            Func<Task> transactAsync = () => t.TransactAsync(_ => t.TransactAsync(__ => { }));
+            Func<object> tryTransact = () => t.TryTransact(_ => t.TryTransact(__ => { }));
+
+            Assert.Throws<InvalidOperationException>(transact);
+            Assert.Throws<InvalidOperationException>(transactFunc);
+            Assert.Throws<InvalidOperationException>(tryTransact);
+            Assert.ThrowsAsync<InvalidOperationException>(transactAsync);
         }
     }
 }
