@@ -7,6 +7,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
     {
         readonly DbStorage _storage;
         readonly DbProxyTypeGenerator _proxyTypeGenerator;
+        IDatabaseContext _currentContext;
 
         public DbTransactor(DbStorage storage, DbProxyTypeGenerator proxyTypeGenerator)
         {
@@ -16,49 +17,81 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         public void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            action(CreateContext());
+            using var context = CreateContext();
+            action(context);
         }
 
         public T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            return function(CreateContext());
+            using var context = CreateContext();
+            return function(context);
         }
 
         public Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            action(CreateContext());
+            using var context = CreateContext();
+            action(context);
             return Task.CompletedTask;
         }
 
         public Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
-            return function(CreateContext());
+            using var context = CreateContext();
+            return function(context);
         }
 
         public Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            var obj = function(CreateContext());
+            using var context = CreateContext();
+            var obj = function(context);
             return Task<T>.FromResult(default(T));
         }
 
         public Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
-            return function(CreateContext());
+            using var context = CreateContext();
+            return function(context);
         }
 
         public bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
+            using var context = CreateContext();
             try
             {
-                action(CreateContext());
+                action(context);
                 return true;
             }
+            catch (InvalidOperationException e) when (e.InnerException is AlreadyExecutingException)
+            {
+                throw;
+            } 
             catch
             {
                 return false;
             }
         }
 
-        IDatabaseContext CreateContext() => new DbContext(_storage, _proxyTypeGenerator);
+        class AlreadyExecutingException : Exception {}
+
+        void ThrowIfAlreadyExecuting()
+        {
+            if (_currentContext != null)
+            {
+                throw new InvalidOperationException("Already executing", new AlreadyExecutingException());
+            }
+        }
+
+        DbContext CreateContext()
+        {
+            ThrowIfAlreadyExecuting();
+
+            var context = new DbContext(_storage, _proxyTypeGenerator)
+            {
+                DisposeCallback = c => { _currentContext = null; }
+            };
+
+            _currentContext = context;
+            return context;
+        }
     }
 }
