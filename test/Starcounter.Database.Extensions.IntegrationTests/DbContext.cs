@@ -9,8 +9,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     class DbContext : IDatabaseContext
     {
-        readonly ConcurrentDictionary<ulong, Tuple<object, ChangeType>> _changes
-            = new ConcurrentDictionary<ulong, Tuple<object, ChangeType>>();
+        readonly Dictionary<ulong, Tuple<object, ChangeType>> _changes
+            = new Dictionary<ulong, Tuple<object, ChangeType>>();
 
         readonly DbStorage _storage;
 
@@ -55,7 +55,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             // If it's in the change set already, it must be an insert.
             // If so, just remove it. Otherwise, generate new change.
 
-            var removed = _changes.Remove(id, out Tuple<object, ChangeType> _);
+            var removed = _changes.Remove(id);
             if (!removed)
             {
                 _changes[id] = Tuple.Create(obj, ChangeType.Delete);

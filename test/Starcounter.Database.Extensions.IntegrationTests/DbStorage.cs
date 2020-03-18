@@ -18,12 +18,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 throw new ArgumentNullException(nameof(obj));
             }
 
-            int id;
-            lock (_lock)
-            {
-                id = ++_counter;
-                _objects.Add(id, obj);
-            }
+            int id = ++_counter;
+            _objects.Add(id, obj);
 
             return (ulong) id;
         }
@@ -35,31 +31,22 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 throw new ArgumentNullException(nameof(obj));
             }
 
-            int id;
-            lock(_lock)
+            int id = _objects.FirstOrDefault(t => object.ReferenceEquals(t.Value, obj)).Key;
+            if (id == 0)
             {
-                id = _objects.FirstOrDefault(t => object.ReferenceEquals(t.Value, obj)).Key;
-
-                if (id == 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(obj));
-                }
-
-                _objects.Remove(id);
-
-                return (ulong) id;
+                throw new ArgumentOutOfRangeException(nameof(obj));
             }
+
+            _objects.Remove(id);
+
+            return (ulong)id;
         }
 
         public object Get(ulong oid)
         {
-            int id = (int)oid;
-            lock(_lock)
+            if (_objects.TryGetValue((int)oid, out object result))
             {
-                if (_objects.TryGetValue(id, out object result))
-                {
-                    return result;
-                }
+                return result;
             }
 
             throw new ArgumentOutOfRangeException(nameof(oid));
@@ -72,11 +59,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 throw new ArgumentNullException(nameof(obj));
             }
 
-            int id;
-            lock(_lock)
-            {
-                id = _objects.FirstOrDefault(t => object.ReferenceEquals(t.Value, obj)).Key;
-            }
+            int id = _objects.FirstOrDefault(t => object.ReferenceEquals(t.Value, obj)).Key;
 
             if (id == 0)
             {
