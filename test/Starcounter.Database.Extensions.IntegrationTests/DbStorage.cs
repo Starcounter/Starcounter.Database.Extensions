@@ -21,7 +21,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             int id = ++_counter;
             _objects.Add(id, obj);
 
-            return (ulong) id;
+            return (ulong)id;
         }
 
         public ulong Delete(object obj)

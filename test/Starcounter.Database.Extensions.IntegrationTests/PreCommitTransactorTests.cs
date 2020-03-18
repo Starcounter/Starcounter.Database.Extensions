@@ -18,7 +18,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) => 
+                    .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
                     {
                         var p = db.Get<Person>(change.Oid);
                         p.WasHooked = true;

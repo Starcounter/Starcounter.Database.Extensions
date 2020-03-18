@@ -9,7 +9,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
     {
         readonly ModuleBuilder _moduleBuilder;
         Dictionary<Type, Type> _proxyMap = new Dictionary<Type, Type>();
-        
+
         public DbProxyTypeGenerator() => _moduleBuilder = CreateBuilder();
 
         public Type EnsureProxyType(Type userDefinedType)
