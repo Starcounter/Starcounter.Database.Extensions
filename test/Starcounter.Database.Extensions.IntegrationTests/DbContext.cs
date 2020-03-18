@@ -14,6 +14,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         readonly DbStorage _storage;
 
+        readonly DbProxyTypeGenerator _proxyTypeGenerator = new DbProxyTypeGenerator();
+
         public DbContext(DbStorage storage) => _storage = storage ?? throw new ArgumentNullException(nameof(storage));
 
         class DbContextChangeTracker : IChangeTracker
@@ -54,9 +56,17 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         public ulong GetOid(object databaseObject) => _storage.GetOid(databaseObject);
 
+        Dictionary<Type, Type> proxyMap = new Dictionary<Type, Type>();
+
         public T Insert<T>() where T : class
         {
-            var obj = Activator.CreateInstance(typeof(T));
+            if (!proxyMap.TryGetValue(typeof(T), out Type proxyType))
+            {
+                proxyType = _proxyTypeGenerator.GenerateProxyType(typeof(T));
+                proxyMap.Add(typeof(T), proxyType);
+            }
+
+            var obj = Activator.CreateInstance(proxyType);
 
             var id = _storage.Insert(obj);
             _changes[id] = Tuple.Create(obj, ChangeType.Insert);
