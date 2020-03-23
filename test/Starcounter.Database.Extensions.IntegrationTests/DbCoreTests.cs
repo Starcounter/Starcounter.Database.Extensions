@@ -8,7 +8,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public class DbCoreTests : ServicedTests
     {
-        public class Person {}
+        public class Person { }
 
         [Fact]
         public void ServiceSetupYieldExpectedImplementations()

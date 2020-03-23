@@ -46,8 +46,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 object boxed = RuntimeHelpers.GetObjectValue(result);
                 type.GetProperty(nameof(Change.Oid)).SetValue(boxed, change.Key);
                 type.GetProperty(nameof(Change.Type)).SetValue(boxed, change.Value.Item2);
-                
-                return (Change) boxed;
+
+                return (Change)boxed;
             }
         }
 
@@ -82,7 +82,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var id = _storage.Insert(obj);
             _changes[id] = Tuple.Create(obj, ChangeType.Insert);
 
-            return (T) obj;
+            return (T)obj;
         }
 
         public ISqlResult<T> Sql<T>(string query, params object[] values) => throw new NotImplementedException();

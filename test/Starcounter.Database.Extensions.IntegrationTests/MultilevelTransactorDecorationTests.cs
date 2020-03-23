@@ -22,7 +22,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => {})
+                    .Configure<PreCommitOptions>(o => { })
                     .Decorate<ITransactor, OnDeleteTransactor>()
                     .Decorate<ITransactor, PreCommitTransactor>()
             )
@@ -45,7 +45,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => {})
+                    .Configure<PreCommitOptions>(o => { })
                     .Decorate<ITransactor, PreCommitTransactor>()
                     .Decorate<ITransactor, OnDeleteTransactor>()
             )
@@ -140,7 +140,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
             expectedChanges.Push((id, ChangeType.Insert));
 
-            var wasDeleted = transactor.Transact(db => 
+            var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
                 db.Delete(p);
@@ -176,7 +176,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
             expectedChanges.Push((id, ChangeType.Insert));
 
-            var wasDeleted = transactor.Transact(db => 
+            var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
                 db.Delete(p);
