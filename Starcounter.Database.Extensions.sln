@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Starcounter.Database.Extensions", "src\Starcounter.Database.Extensions\Starcounter.Database.Extensions.csproj", "{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{A7FF5EC3-CEB2-4B59-AA80-8E0CCC64A805}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Starcounter.Database.Extensions.IntegrationTests", "test\Starcounter.Database.Extensions.IntegrationTests\Starcounter.Database.Extensions.IntegrationTests.csproj", "{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{95830FC9-D2A9-4C23-ADF5-47FAAFAD2390}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{16D71DAA-401E-4400-8950-67429554CCDB}"
+	ProjectSection(SolutionItems) = preProject
+		samples\README.md = samples\README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hooks", "samples\Hooks\Hooks.csproj", "{B7653081-D17A-4DC5-8192-648864B130ED}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7A44163D-D461-4D7A-BCB9-14AD0BBB2D6F}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		NuGet.Config = NuGet.Config
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7653081-D17A-4DC5-8192-648864B130ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7653081-D17A-4DC5-8192-648864B130ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7653081-D17A-4DC5-8192-648864B130ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7653081-D17A-4DC5-8192-648864B130ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45} = {95830FC9-D2A9-4C23-ADF5-47FAAFAD2390}
+		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5} = {A7FF5EC3-CEB2-4B59-AA80-8E0CCC64A805}
+		{B7653081-D17A-4DC5-8192-648864B130ED} = {16D71DAA-401E-4400-8950-67429554CCDB}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B2CDA871-6A0E-4E5B-9F24-CE51B128680C}
+	EndGlobalSection
+EndGlobal

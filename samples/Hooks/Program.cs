@@ -12,7 +12,7 @@ namespace Hooks
 
         public void OnDelete(IDatabaseContext db) => Console.WriteLine($"{Name} is about to be deleted.");
     }
-    
+
     class Program
     {
         static void Main(string[] args)
@@ -21,7 +21,7 @@ namespace Hooks
                 .AddStarcounter($"Database=./.database/Hooks")
                 .Decorate<ITransactor, OnDeleteTransactor>()
                 .Decorate<ITransactor, PreCommitTransactor>()
-                .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) 
+                .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change)
                     => Console.WriteLine($"{change.Type} of object with id {change.Oid}")))
                 .BuildServiceProvider();
 

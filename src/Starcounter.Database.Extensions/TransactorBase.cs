@@ -8,35 +8,35 @@ namespace Starcounter.Database.Extensions
         readonly ITransactor _inner;
 
         protected ITransactor InnerTransactor { get => _inner; }
-        
-        protected TransactorBase(ITransactor innerTransactor) 
+
+        protected TransactorBase(ITransactor innerTransactor)
             => _inner = innerTransactor ?? throw new ArgumentNullException(nameof(innerTransactor));
 
-        public virtual void Transact(Action<IDatabaseContext> action, TransactOptions options = null) 
+        public virtual void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
             => _inner.Transact(db => ExecuteCallback(db, action), options);
 
-        public virtual T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null) 
+        public virtual T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
             => _inner.Transact(db => ExecuteCallback(db, function), options);
 
-        public virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null) 
+        public virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
             => _inner.TransactAsync(db => ExecuteCallback(db, action), options);
 
-        public virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null) 
+        public virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
             => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null) 
+        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
             => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null) 
+        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
             => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
 
-        public virtual bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null) 
+        public virtual bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
             => _inner.TryTransact(db => ExecuteCallback(db, action), options);
 
         protected virtual void ExecuteCallback(IDatabaseContext db, Action<IDatabaseContext> action)
         {
             var context = EnterContext(db);
-            try 
+            try
             {
                 action(context);
             }
@@ -46,10 +46,10 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected virtual T ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, T> function) 
+        protected virtual T ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, T> function)
         {
             var context = EnterContext(db);
-            try 
+            try
             {
                 return function(context);
             }
@@ -62,7 +62,7 @@ namespace Starcounter.Database.Extensions
         protected virtual Task ExecuteCallback(IDatabaseContext db, Func<IDatabaseContext, Task> function)
         {
             var context = EnterContext(db);
-            try 
+            try
             {
                 return function(context);
             }
@@ -75,7 +75,7 @@ namespace Starcounter.Database.Extensions
         protected virtual Task<T> ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
         {
             var context = EnterContext(db);
-            try 
+            try
             {
                 return function(context);
             }
@@ -99,6 +99,6 @@ namespace Starcounter.Database.Extensions
         /// within the scope of the transaction and the kernel context.
         /// </summary>
         /// <param name="db">The database context returned by EnterContext.</param>
-        protected virtual void LeaveContext(IDatabaseContext db) {}
+        protected virtual void LeaveContext(IDatabaseContext db) { }
     }
 }
