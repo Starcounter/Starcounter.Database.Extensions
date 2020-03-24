@@ -224,7 +224,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             foreach (var transactor in transactors)
             {
-                (ulong Id, bool WasHooked) result = transactor.Transact(db =>
+                (ulong Id, bool WasHooked) resultFirst = transactor.Transact(db =>
                 {
                     var p = db.Insert<Person>();
                     var id = db.GetOid(p);
@@ -246,15 +246,16 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     return (id, p.WasHooked);
                 });
 
-                var wasDeleted = transactor.Transact(db =>
+                (bool WasDeleted, bool WasHooked) resultSecond = transactor.Transact(db =>
                 {
-                    var p = db.Get<Person>(result.Id);
+                    var p = db.Get<Person>(resultFirst.Id);
                     db.Delete(p);
-                    return p.WasDeleted;
+                    return (p.WasDeleted, p.WasHooked);
                 });
 
-                Assert.True(result.WasHooked);
-                Assert.True(wasDeleted);
+                Assert.False(resultFirst.WasHooked);
+                Assert.True(resultSecond.WasHooked);
+                Assert.True(resultSecond.WasDeleted);
             }
         }
     }
