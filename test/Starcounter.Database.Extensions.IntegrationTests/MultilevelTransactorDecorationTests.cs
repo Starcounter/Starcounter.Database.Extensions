@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database.ChangeTracking;
 using Xunit;
@@ -186,6 +187,75 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.IsType<PreCommitTransactor>(transactor);
             Assert.Equal(expectedChanges, recordedChanges);
             Assert.True(wasDeleted);
+        }
+
+        [Fact]
+        public void MixedTransactorDecorationSetupsPassCommonTests()
+        {
+            ITransactor CreateTransactorForCombination<T1, T2, T3>()
+                where T1 : ITransactor
+                where T2 : ITransactor
+                where T3 : ITransactor
+            {
+                var services = CreateServices
+                (
+                    serviceCollection => serviceCollection
+                        .Decorate<ITransactor, T1>()
+                        .Decorate<ITransactor, T2>()
+                        .Decorate<ITransactor, T3>()
+                        .Configure<PreCommitOptions>(o =>
+                        {
+                            o.Hook<Person>((db, change) => db.Get<Person>(change.Oid).WasHooked = true);
+                        })
+                );
+
+                return services.GetRequiredService<ITransactor>();
+            }
+
+            var transactors = new List<ITransactor>(new[]
+            {
+                CreateTransactorForCombination<NestedTransactor, OnDeleteTransactor, PreCommitTransactor>(),
+                CreateTransactorForCombination<NestedTransactor, PreCommitTransactor, OnDeleteTransactor>(),
+                CreateTransactorForCombination<OnDeleteTransactor, NestedTransactor, PreCommitTransactor>(),
+                CreateTransactorForCombination<OnDeleteTransactor, PreCommitTransactor, NestedTransactor>(),
+                CreateTransactorForCombination<PreCommitTransactor, OnDeleteTransactor, NestedTransactor>(),
+                CreateTransactorForCombination<PreCommitTransactor, NestedTransactor, OnDeleteTransactor>()
+            });
+
+            foreach (var transactor in transactors)
+            {
+                (ulong Id, bool WasHooked) result = transactor.Transact(db =>
+                {
+                    var p = db.Insert<Person>();
+                    var id = db.GetOid(p);
+
+                    var innerId = transactor.Transact(db =>
+                    {
+                        var p2 = db.Insert<Person>();
+                        return db.GetOid(p2);
+                    });
+
+                    var expected = new[] { id, innerId };
+                    var result = db.ChangeTracker.Changes
+                        .Select(c => c.Oid)
+                        .OrderBy(id => id)
+                        .ToArray();
+
+                    Assert.Equal(expected, result);
+
+                    return (id, p.WasHooked);
+                });
+
+                var wasDeleted = transactor.Transact(db =>
+                {
+                    var p = db.Get<Person>(result.Id);
+                    db.Delete(p);
+                    return p.WasDeleted;
+                });
+
+                Assert.True(result.WasHooked);
+                Assert.True(wasDeleted);
+            }
         }
     }
 }
