@@ -78,7 +78,7 @@ namespace Starcounter.Database.Extensions
             {
                 return function(new NestedTransactionContext(nested));
             }
-            
+
             return base.TransactAsync(function, options);
         }
 
@@ -89,7 +89,7 @@ namespace Starcounter.Database.Extensions
             {
                 return function(new NestedTransactionContext(nested));
             }
-            
+
             return base.TransactAsync(function, options);
         }
 
@@ -101,7 +101,7 @@ namespace Starcounter.Database.Extensions
                 action(new NestedTransactionContext(nested));
                 return true;
             }
-            
+
             return base.TryTransact(action, options);
         }
 
