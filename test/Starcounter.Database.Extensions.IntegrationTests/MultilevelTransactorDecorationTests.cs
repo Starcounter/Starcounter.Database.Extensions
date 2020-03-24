@@ -214,9 +214,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var transactors = new List<ITransactor>(new[]
             {
-                CreateTransactorForCombination<NestedTransactor, OnDeleteTransactor, PreCommitTransactor>(),
-                CreateTransactorForCombination<NestedTransactor, PreCommitTransactor, OnDeleteTransactor>(),
-                CreateTransactorForCombination<OnDeleteTransactor, NestedTransactor, PreCommitTransactor>(),
                 CreateTransactorForCombination<OnDeleteTransactor, PreCommitTransactor, NestedTransactor>(),
                 CreateTransactorForCombination<PreCommitTransactor, OnDeleteTransactor, NestedTransactor>(),
                 CreateTransactorForCombination<PreCommitTransactor, NestedTransactor, OnDeleteTransactor>()
