@@ -33,7 +33,7 @@ namespace NestedTransactions
                 
                 transactor.Transact(db =>
                 {
-                    // Wihout NestedTransactor, this would not be allowed.
+                    // Without NestedTransactor, this would not be allowed.
                     // Starcounter natively don't support nested transactions and
                     // will raise an exception for any Transact done as part of an
                     // already running transaction
