@@ -15,7 +15,7 @@ namespace Starcounter.Database.Extensions
     /// </summary>
     public class NestedTransactor : TransactorBase
     {
-        ThreadLocal<IDatabaseContext> _current = new ThreadLocal<IDatabaseContext>();
+        AsyncLocal<IDatabaseContext> _current = new AsyncLocal<IDatabaseContext>();
 
         internal class NestedTransactionContext : ContextBase
         {
