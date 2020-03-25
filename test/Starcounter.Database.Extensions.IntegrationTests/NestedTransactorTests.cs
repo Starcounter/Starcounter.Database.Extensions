@@ -43,7 +43,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             // This execute as a top-level transaction, saving the context as
             // a thread local.
-            var t = transactor.Transact(async db =>
+            var t = transactor.TransactAsync(async db =>
             {
                 // Yield to force continuation to be scheduled and
                 // hence assure we test actual asynchronous execution.
