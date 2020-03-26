@@ -30,8 +30,15 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
             using var context = CreateContext();
-            action(context);
-            return Task.CompletedTask;
+            try
+            {
+                action(context);
+                return Task.CompletedTask;
+            }
+            catch (Exception e)
+            {
+                return Task.FromException(e);
+            }
         }
 
         public Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
@@ -43,8 +50,15 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
             using var context = CreateContext();
-            var obj = function(context);
-            return Task<T>.FromResult(default(T));
+            try
+            {
+                var obj = function(context);
+                return Task<T>.FromResult(obj);
+            }
+            catch (Exception e)
+            {
+                return Task.FromException<T>(e);
+            }
         }
 
         public Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
