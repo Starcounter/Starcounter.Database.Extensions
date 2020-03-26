@@ -52,8 +52,15 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                action(new NestedTransactionContext(nested));
-                return Task.CompletedTask;
+                try
+                {
+                    action(new NestedTransactionContext(nested));
+                    return Task.CompletedTask;
+                }
+                catch (Exception e)
+                {
+                    return Task.FromException(e);
+                }
             }
 
             return base.TransactAsync(action, options);
@@ -64,8 +71,15 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                T result = function(new NestedTransactionContext(nested));
-                return Task.FromResult(result);
+                try
+                {
+                    T result = function(new NestedTransactionContext(nested));
+                    return Task.FromResult(result);
+                }
+                catch (Exception e)
+                {
+                    return Task.FromException<T>(e);
+                }
             }
 
             return base.TransactAsync(function, options);
