@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -55,6 +56,50 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
 
             Assert.True(t.GetAwaiter().GetResult());
+        }
+
+        [Fact]
+        public void NestedTransactAsyncFailingActionRenderFaultyTask()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+            Action<IDatabaseContext> action = db =>
+            {
+                if (db.IsNested())
+                {
+                    throw new Exception("Foo");
+                }
+            };
+
+            var t = transactor.TransactAsync(db => transactor.TransactAsync(action));
+
+            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            Assert.Equal("Foo", e.Message);
+        }
+
+        [Fact]
+        public void NestedTransactAsyncFailingFuncRenderFaultyTask()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+            Func<IDatabaseContext, bool> func = db => 
+            {
+                if (db.IsNested())
+                {
+                    throw new Exception("Foo");
+                }
+
+                return false;
+            };
+
+            var t = transactor.TransactAsync(db => transactor.TransactAsync(func));
+
+            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            Assert.Equal("Foo", e.Message);
         }
     }
 }
