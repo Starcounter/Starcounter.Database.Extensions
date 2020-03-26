@@ -98,5 +98,31 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.Throws<InvalidOperationException>(tryTransact);
             Assert.ThrowsAsync<InvalidOperationException>(transactAsync);
         }
+
+        [Fact]
+        public void TransactAsyncFailingActionRenderFaultyTask()
+        {
+            var transactor = CreateServices().GetRequiredService<ITransactor>();
+
+            Action<IDatabaseContext> action = db => throw new Exception("Foo");
+
+            var t = transactor.TransactAsync(action);
+
+            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            Assert.Equal("Foo", e.Message);
+        }
+
+        [Fact]
+        public void TransactAsyncFailingFuncRenderFaultyTask()
+        {
+            var transactor = CreateServices().GetRequiredService<ITransactor>();
+
+            Func<IDatabaseContext, bool> func = db => throw new Exception("Foo");
+
+            var t = transactor.TransactAsync(func);
+
+            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            Assert.Equal("Foo", e.Message);
+        }
     }
 }
