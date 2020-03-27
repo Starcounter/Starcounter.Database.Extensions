@@ -47,42 +47,30 @@ namespace Starcounter.Database.Extensions
             return base.Transact(function, options);
         }
 
-        public override Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
+        public override async Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
             var nested = _current.Value;
             if (nested != null)
             {
-                try
-                {
-                    action(new NestedTransactionContext(nested));
-                    return Task.CompletedTask;
-                }
-                catch (Exception e)
-                {
-                    return Task.FromException(e);
-                }
+                action(new NestedTransactionContext(nested));
             }
-
-            return base.TransactAsync(action, options);
+            else
+            {
+                await base.TransactAsync(action, options);
+            }
         }
 
-        public override Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
             var nested = _current.Value;
             if (nested != null)
             {
-                try
-                {
-                    T result = function(new NestedTransactionContext(nested));
-                    return Task.FromResult(result);
-                }
-                catch (Exception e)
-                {
-                    return Task.FromException<T>(e);
-                }
+                return function(new NestedTransactionContext(nested));
             }
-
-            return base.TransactAsync(function, options);
+            else
+            {
+                return await base.TransactAsync(function, options);
+            }
         }
 
         public override Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
