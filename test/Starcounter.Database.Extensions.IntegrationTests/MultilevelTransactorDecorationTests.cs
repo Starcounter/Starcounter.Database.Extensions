@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database.ChangeTracking;
@@ -16,8 +17,10 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             public void OnDelete(IDatabaseContext db) => WasDeleted = true;
         }
 
-        [Fact]
-        public void OnDeleteIsCalledWhenOuterTransactorIsUsed()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void OnDeleteIsCalledWhenOuterTransactorIsUsed(bool inner)
         {
             var transactor = CreateServices
             (
@@ -28,7 +31,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             )
             .GetRequiredService<ITransactor>();
 
-            var result = transactor.Transact(db =>
+            var result = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 db.Delete(p);
@@ -39,8 +42,10 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.True(result);
         }
 
-        [Fact]
-        public void OnDeleteIsCalledWhenUsedAsOuterTransactor()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void OnDeleteIsCalledWhenUsedAsOuterTransactor(bool inner)
         {
             var transactor = CreateServices
             (
@@ -51,7 +56,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             )
             .GetRequiredService<ITransactor>();
 
-            var result = transactor.Transact(db =>
+            var result = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 db.Delete(p);
@@ -62,8 +67,10 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.True(result);
         }
 
-        [Fact]
-        public void HookIsCalledWhenOuterTransactorIsUsed()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void HookIsCalledWhenOuterTransactorIsUsed(bool inner)
         {
             var transactor = CreateServices
             (
@@ -76,21 +83,23 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     })
             ).GetRequiredService<ITransactor>();
 
-            (ulong Id, bool WasHooked) before = transactor.Transact(db =>
+            (ulong Id, bool WasHooked) before = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 return (db.GetOid(p), p.WasHooked);
             });
 
-            var after = transactor.Transact(db => db.Get<Person>(before.Id).WasHooked);
+            var after = Transact(transactor, inner, db => db.Get<Person>(before.Id).WasHooked);
 
             Assert.IsType<OnDeleteTransactor>(transactor);
             Assert.False(before.WasHooked);
             Assert.True(after);
         }
 
-        [Fact]
-        public void HookIsCalledWhenUsedAsOuterTransactor()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void HookIsCalledWhenUsedAsOuterTransactor(bool inner)
         {
             var transactor = CreateServices
             (
@@ -103,21 +112,23 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     })
             ).GetRequiredService<ITransactor>();
 
-            (ulong Id, bool WasHooked) before = transactor.Transact(db =>
+            (ulong Id, bool WasHooked) before = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 return (db.GetOid(p), p.WasHooked);
             });
 
-            var after = transactor.Transact(db => db.Get<Person>(before.Id).WasHooked);
+            var after = Transact(transactor, inner, db => db.Get<Person>(before.Id).WasHooked);
 
             Assert.IsType<PreCommitTransactor>(transactor);
             Assert.False(before.WasHooked);
             Assert.True(after);
         }
 
-        [Fact]
-        public void HookAndOnDeleteIsCalledWhenUsedWithOuterOnDeleteTransactor()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void HookAndOnDeleteIsCalledWhenUsedWithOuterOnDeleteTransactor(bool inner)
         {
             var recordedChanges = new Stack<(ulong Id, ChangeType Type)>();
             var expectedChanges = new Stack<(ulong Id, ChangeType Type)>();
@@ -133,14 +144,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     })
             ).GetRequiredService<ITransactor>();
 
-            var id = transactor.Transact(db =>
+            var id = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 return db.GetOid(p);
             });
             expectedChanges.Push((id, ChangeType.Insert));
 
-            var wasDeleted = transactor.Transact(db =>
+            var wasDeleted = Transact(transactor, inner, db =>
             {
                 var p = db.Get<Person>(id);
                 db.Delete(p);
@@ -152,8 +163,10 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.True(wasDeleted);
         }
 
-        [Fact]
-        public void HookAndOnDeleteIsCalledWhenUsedWithOuterPreCommitTransactor()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void HookAndOnDeleteIsCalledWhenUsedWithOuterPreCommitTransactor(bool inner)
         {
             var recordedChanges = new Stack<(ulong Id, ChangeType Type)>();
             var expectedChanges = new Stack<(ulong Id, ChangeType Type)>();
@@ -169,14 +182,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     })
             ).GetRequiredService<ITransactor>();
 
-            var id = transactor.Transact(db =>
+            var id = Transact(transactor, inner, db =>
             {
                 var p = db.Insert<Person>();
                 return db.GetOid(p);
             });
             expectedChanges.Push((id, ChangeType.Insert));
 
-            var wasDeleted = transactor.Transact(db =>
+            var wasDeleted = Transact(transactor, inner, db =>
             {
                 var p = db.Get<Person>(id);
                 db.Delete(p);
@@ -186,6 +199,25 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.IsType<PreCommitTransactor>(transactor);
             Assert.Equal(expectedChanges, recordedChanges);
             Assert.True(wasDeleted);
+        }
+
+        private T Transact<T>(ITransactor transactor, bool inner, Func<IDatabaseContext, T> action)
+        {
+            if (inner)
+            {
+                T result = default;
+
+                transactor.Transact(udb =>
+                {
+                    result = transactor.Transact(action, new TransactOptions(TransactionFlags.Innter));
+                }, new TransactOptions(TransactionFlags.ReadOnly));
+
+                return result;
+            }
+            else
+            {
+                return transactor.Transact(action);
+            }
         }
     }
 }
