@@ -29,8 +29,17 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                action(new NestedTransactionContext(nested));
-                return;
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    action(context);
+                    return;
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
 
             base.Transact(action, options);
@@ -41,7 +50,17 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                return function(new NestedTransactionContext(nested));
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    return function(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
+                
             }
 
             return base.Transact(function, options);
@@ -52,7 +71,16 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                action(new NestedTransactionContext(nested));
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    action(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
             else
             {
@@ -65,7 +93,16 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                return function(new NestedTransactionContext(nested));
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    return function(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
             else
             {
@@ -78,7 +115,16 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                return function(new NestedTransactionContext(nested));
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    return function(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
 
             return base.TransactAsync(function, options);
@@ -89,7 +135,16 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                return function(new NestedTransactionContext(nested));
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    return function(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
 
             return base.TransactAsync(function, options);
@@ -100,8 +155,17 @@ namespace Starcounter.Database.Extensions
             var nested = _current.Value;
             if (nested != null)
             {
-                action(new NestedTransactionContext(nested));
-                return true;
+                var context = new NestedTransactionContext(nested);
+                try
+                {
+                    action(context);
+                    return true;
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
 
             return base.TryTransact(action, options);
@@ -110,5 +174,10 @@ namespace Starcounter.Database.Extensions
         protected override IDatabaseContext EnterContext(IDatabaseContext db) => _current.Value = db;
 
         protected override void LeaveContext(IDatabaseContext db) { _current.Value = null; }
+
+        protected void Rollback(IDatabaseContext db)
+        {
+            // TODO:
+        }
     }
 }
