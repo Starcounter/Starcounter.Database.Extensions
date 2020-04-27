@@ -13,7 +13,7 @@ namespace Starcounter.Database.Extensions
     /// <c>NestedTransactor</c> as the most outer one in the decoration chain. 
     /// </remarks>
     /// </summary>
-    public class NestedTransactor : TransactorBase
+    public class NestedTransactor : TransactorBase, INestedTransactor
     {
         AsyncLocal<IDatabaseContext> _current = new AsyncLocal<IDatabaseContext>();
 
