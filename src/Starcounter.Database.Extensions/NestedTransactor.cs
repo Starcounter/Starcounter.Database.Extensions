@@ -60,7 +60,7 @@ namespace Starcounter.Database.Extensions
                     Rollback(context);
                     throw;
                 }
-                
+
             }
 
             return base.Transact(function, options);
