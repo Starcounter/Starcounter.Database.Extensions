@@ -34,15 +34,15 @@ namespace NestedTransactions
                 transactor.Transact(db =>
                 {
                     // Without NestedTransactor, this would not be allowed.
-                    // Starcounter natively don't support nested transactions and
+                    // Starcounter natively does not support nested transactions and
                     // will raise an exception for any Transact done as part of an
-                    // already running transaction
+                    // already running transaction.
 
                     var john = db.Insert<Person>();
                     john.Name = "John Doe";
 
                     // Here, we can find "Jane", simply because the NestedTransactor
-                    // execute the current delegate as part of the outer transaction.
+                    // executes the current delegate as a part of the outer transaction.
 
                     var jane = db.Sql<Person>("SELECT p FROM Person p WHERE p.Name = ?", "Jane Doe").First();
                     john.BestFriend = jane;
