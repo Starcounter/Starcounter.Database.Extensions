@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Starcounter.Database.Extensions\Starcounter.Database.Extensions.csproj" />
+    <ProjectReference Include="..\..\..\Starcounter.Nova\src\Starcounter.Database\Starcounter.Database.csproj" />
+    <ProjectReference Include="..\..\..\Starcounter.Nova\test\TestUtilities\TestUtilities.csproj" />
   </ItemGroup>
 
 </Project>

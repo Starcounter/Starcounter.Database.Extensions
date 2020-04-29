@@ -6,12 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Starcounter.Database" Version="3.0.0-rc" />
     <PackageReference Include="Scrutor" Version="3.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Starcounter.Database.Extensions\Starcounter.Database.Extensions.csproj" />
+    <ProjectReference Include="..\..\..\Starcounter.Nova\src\Starcounter.Database\Starcounter.Database.csproj" />
   </ItemGroup>
 
 </Project>
