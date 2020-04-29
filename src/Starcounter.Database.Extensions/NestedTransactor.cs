@@ -26,23 +26,25 @@ namespace Starcounter.Database.Extensions
 
         public override void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    action(context);
-                    return;
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                base.Transact(action, options);
+                return;
             }
 
-            base.Transact(action, options);
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                action(context);
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
+            }
         }
 
         public override T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
