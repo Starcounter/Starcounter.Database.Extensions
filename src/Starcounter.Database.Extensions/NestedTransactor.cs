@@ -6,10 +6,10 @@ namespace Starcounter.Database.Extensions
 {
     /// <summary>
     /// Custom transactor that allow nesting of transactions, and running the
-    /// given delegate as part of an other transaction, if given to a Transact
+    /// given delegate as a part of an other transaction, if given to a Transact
     /// call within an already executing transaction.
     /// <remarks>
-    /// When using multiple custom transactors, its recommended to use the
+    /// When using multiple custom transactors, it is recommended to use the
     /// <c>NestedTransactor</c> as the most outer one in the decoration chain. 
     /// </remarks>
     /// </summary>
