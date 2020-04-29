@@ -177,7 +177,7 @@ namespace Starcounter.Database.Extensions
 
         protected void Rollback(IDatabaseContext db)
         {
-            // TODO:
+            db.Transaction.Rollback();
         }
     }
 }
