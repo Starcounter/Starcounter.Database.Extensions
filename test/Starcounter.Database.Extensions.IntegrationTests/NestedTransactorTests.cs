@@ -7,6 +7,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class NestedTransactorTests : ServicedTests
     {
+        [Database] public class Person {}
+
         public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
 
         [Fact]
@@ -35,6 +37,55 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
 
             Assert.True(nested);
+        }
+
+        [Fact]
+        public void ShouldHaveOuterChangesVisibleInNestedTransaction()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+            var result = transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                var id = db.GetOid(p);
+
+                return transactor.Transact(db => db.Get<Person>(id) != null);
+            });
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void ShouldRollbackOuterTransactionWhenNestedScopeFail()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+            var ex = transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                var id = db.GetOid(p);
+
+                try
+                {
+                    transactor.Transact(_ => throw new Exception());
+                }
+                catch
+                {
+                    // Even if this outer transaction catches it; it should not be
+                    // able to continue, since the transaction is aborted.
+                    return Assert.ThrowsAny<DatabaseException>(() => db.Get<Person>(id));
+                }
+
+                return null;
+            });
+
+            Assert.NotNull(ex);
+            Assert.Equal(4003u, ex.Code);
+            Assert.Contains("ScErrNoTransactionAttached", ex.Message);
         }
 
         [Fact]
