@@ -49,137 +49,143 @@ namespace Starcounter.Database.Extensions
 
         public override T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
-            {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    return function(context);
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+            IDatabaseContext nested = _current.Value;
 
+            if (nested == null)
+            {
+                return base.Transact(function, options);
             }
 
-            return base.Transact(function, options);
-        }
+            var context = new NestedTransactionContext(nested);
 
-        public override async Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
-        {
-            var nested = _current.Value;
-            if (nested != null)
+            try
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    action(context);
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                return function(context);
             }
-            else
+            catch
             {
-                await base.TransactAsync(action, options);
+                Rollback(context);
+                throw;
             }
         }
 
-        public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        public override Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    return function(context);
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                return base.TransactAsync(action, options);
             }
-            else
+
+            var context = new NestedTransactionContext(nested);
+
+            try
             {
-                return await base.TransactAsync(function, options);
+                action(context);
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public override Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        {
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
+            {
+                return base.TransactAsync(function, options);
+            }
+
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                return Task.FromResult(function(context));
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
             }
         }
 
         public override Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    return function(context);
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                return base.TransactAsync(function, options);
             }
 
-            return base.TransactAsync(function, options);
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                return function(context);
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
+            }
         }
 
         public override Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    return function(context);
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                return base.TransactAsync(function, options);
             }
 
-            return base.TransactAsync(function, options);
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                return function(context);
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
+            }
         }
 
         public override bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var nested = _current.Value;
-            if (nested != null)
+            IDatabaseContext nested = _current.Value;
+
+            if (nested == null)
             {
-                var context = new NestedTransactionContext(nested);
-                try
-                {
-                    action(context);
-                    return true;
-                }
-                catch
-                {
-                    Rollback(context);
-                    throw;
-                }
+                return base.TryTransact(action, options);
             }
 
-            return base.TryTransact(action, options);
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                action(context);
+                return true;
+            }
+            catch
+            {
+                Rollback(context);
+                throw;
+            }
         }
 
         protected override IDatabaseContext EnterContext(IDatabaseContext db) => _current.Value = db;
 
-        protected override void LeaveContext(IDatabaseContext db) { _current.Value = null; }
+        protected override void LeaveContext(IDatabaseContext db) => _current.Value = null;
 
-        protected void Rollback(IDatabaseContext db)
-        {
-            db.Transaction.Rollback();
-        }
+        protected void Rollback(IDatabaseContext db) => db.Transaction.Rollback();
     }
 }
