@@ -7,6 +7,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class NestedTransactorTests : ServicedTests
     {
+        public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+
         [Fact]
         public void AllowNestedTransaction()
         {

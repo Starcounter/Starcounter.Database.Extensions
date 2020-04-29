@@ -8,12 +8,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public class DbCoreTests : ServicedTests
     {
+        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+
         public class Person { }
 
         [Fact]
         public void ServiceSetupYieldExpectedImplementations()
         {
-            var transactor = CreateServices().GetRequiredService<ITransactor>();
+            var transactor = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
             var context = transactor.Transact(db => db);
 
             Assert.IsType<DbTransactor>(transactor);
@@ -23,7 +25,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertOneReturnFirstId()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             t.Transact(db =>
             {
@@ -35,7 +37,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertOneReturnExpectedChanges()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             t.Transact(db =>
             {
@@ -50,7 +52,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void DeleteResultInObjectBeingRemoved()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             var id = t.Transact(db =>
             {
@@ -70,7 +72,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertThenDeleteResultInNoChanges()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             var changes = t.Transact(db =>
             {
@@ -86,7 +88,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void CoreTransactorDontAllowNesting()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             Action transact = () => t.Transact(_ => t.Transact(__ => { }));
             Func<object> transactFunc = () => t.Transact(_ => t.Transact(__ => new object()));

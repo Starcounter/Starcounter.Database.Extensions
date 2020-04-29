@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -5,11 +6,16 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class OnDeleteTransactorTests : ServicedTests
     {
-        public class Person : IDeleteAware
-        {
-            public bool WasDeleted { get; set; }
+        public OnDeleteTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
 
-            public void OnDelete(IDatabaseContext db) => WasDeleted = true;
+        [Database] public abstract class Person : IDeleteAware
+        {
+            [ProxyState]
+            Action<Person> _whenDeleted;
+
+            public void WhenDeleted(Action<Person> action) => _whenDeleted = action;
+            
+            public void OnDelete(IDatabaseContext db) => _whenDeleted?.Invoke(this);
         }
 
         [Fact]
@@ -19,12 +25,19 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 s => s.Decorate<ITransactor, OnDeleteTransactor>())
                 .GetRequiredService<ITransactor>();
 
-            transactor.Transact(db =>
+            var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+                
                 db.Delete(p);
-                Assert.True(p.WasDeleted);
+
+                return deleted;
             });
+
+            Assert.True(wasDeleted);
         }
     }
 }
