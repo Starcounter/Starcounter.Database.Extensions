@@ -8,7 +8,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public class DbCoreTests : ServicedTests
     {
-        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         public class Person { }
 
