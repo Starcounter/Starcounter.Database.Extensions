@@ -53,6 +53,15 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         public IChangeTracker ChangeTracker => new DbContextChangeTracker(_changes);
 
+        class TransactionImpl : ITransaction
+        {
+            // TODO: If we decide to keep this, clear _changes after first reverting
+            // each from underlying Storage too.
+            public void Rollback() => throw new NotImplementedException();
+        }
+
+        public ITransaction Transaction => new TransactionImpl();
+
         public void Delete(object obj)
         {
             var id = _storage.Delete(obj);
