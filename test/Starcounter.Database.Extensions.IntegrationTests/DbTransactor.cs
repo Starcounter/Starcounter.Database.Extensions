@@ -78,14 +78,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             catch (InvalidOperationException e) when (e.InnerException is AlreadyExecutingException)
             {
                 throw;
-            } 
+            }
             catch
             {
                 return false;
             }
         }
 
-        class AlreadyExecutingException : Exception {}
+        class AlreadyExecutingException : Exception { }
 
         void ThrowIfAlreadyExecuting()
         {

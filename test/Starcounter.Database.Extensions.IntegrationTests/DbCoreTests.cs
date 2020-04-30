@@ -8,7 +8,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public class DbCoreTests : ServicedTests
     {
-        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         public class Person { }
 
@@ -86,7 +86,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         [Fact]
-        public void CoreTransactorDontAllowNesting()
+        public async Task CoreTransactorDontAllowNesting()
         {
             var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
@@ -98,11 +98,11 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.Throws<InvalidOperationException>(transact);
             Assert.Throws<InvalidOperationException>(transactFunc);
             Assert.Throws<InvalidOperationException>(tryTransact);
-            Assert.ThrowsAsync<InvalidOperationException>(transactAsync);
+            await Assert.ThrowsAsync<InvalidOperationException>(transactAsync);
         }
 
         [Fact]
-        public void TransactAsyncFailingActionRenderFaultyTask()
+        public async Task TransactAsyncFailingActionRenderFaultyTask()
         {
             var transactor = CreateServices().GetRequiredService<ITransactor>();
 
@@ -110,12 +110,19 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var t = transactor.TransactAsync(action);
 
-            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
-            Assert.Equal("Foo", e.Message);
+            {
+                var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+                Assert.Equal("Foo", e.Message);
+            }
+
+            {
+                var e = await Assert.ThrowsAsync<Exception>(() => t);
+                Assert.Equal("Foo", e.Message);
+            }
         }
 
         [Fact]
-        public void TransactAsyncFailingFuncRenderFaultyTask()
+        public async Task TransactAsyncFailingFuncRenderFaultyTask()
         {
             var transactor = CreateServices().GetRequiredService<ITransactor>();
 
@@ -123,8 +130,15 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var t = transactor.TransactAsync(func);
 
-            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
-            Assert.Equal("Foo", e.Message);
+            {
+                var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+                Assert.Equal("Foo", e.Message);
+            }
+
+            {
+                var e = await Assert.ThrowsAsync<Exception>(() => t);
+                Assert.Equal("Foo", e.Message);
+            }
         }
     }
 }

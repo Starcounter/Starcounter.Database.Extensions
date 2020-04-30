@@ -13,12 +13,12 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
         protected IServiceProvider CreateServices
         (
-            Func<IServiceCollection, IServiceCollection> configurator = null, 
+            Func<IServiceCollection, IServiceCollection> configurator = null,
             bool withRealTemporaryDatabase = true
         )
         {
             IServiceCollection services = new ServiceCollection();
-            
+
             if (withRealTemporaryDatabase)
             {
                 services.AddSingleton<ITransactor>(sp => _testContext.Services.GetRequiredService<ITransactor>());

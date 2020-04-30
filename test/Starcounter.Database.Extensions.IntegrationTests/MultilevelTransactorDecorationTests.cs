@@ -9,7 +9,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class MultilevelTransactorDecorationTests : ServicedTests
     {
-        public MultilevelTransactorDecorationTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public MultilevelTransactorDecorationTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         [Database]
         public abstract class Person : IDeleteAware
@@ -18,7 +18,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Action<Person> _whenDeleted;
 
             public void WhenDeleted(Action<Person> action) => _whenDeleted = action;
-            
+
             public void OnDelete(IDatabaseContext db) => _whenDeleted?.Invoke(this);
         }
 
@@ -37,12 +37,12 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var result = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
-                
+
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
 
                 db.Delete(p);
-                
+
                 return deleted;
             });
 
@@ -65,7 +65,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var result = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
-                
+
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
 
@@ -165,7 +165,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
-                
+
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
 
@@ -206,7 +206,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
-                
+
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
 
@@ -267,7 +267,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             (bool WasDeleted, bool WasHooked) resultSecond = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(resultFirst.Id);
-                
+
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
                 db.Delete(p);

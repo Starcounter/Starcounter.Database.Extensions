@@ -12,7 +12,7 @@ dotnet run
 ```
 
 ## NestedTransactions
-The [NestedTransactions](./NestedTransactions) sample show how the `NestedTransactor` can be used to extend `Starcounter.Database` to support _nested transactions_, something not natively supported.
+The [NestedTransactions](./NestedTransactions) sample shows how the `NestedTransactor` can be used to extend `Starcounter.Database` to support _nested transactions_, something not natively supported.
 
 See [Program.cs](./NestedTransactions/Program.cs) to see how it looks, or run the sample to see it in action:
 
