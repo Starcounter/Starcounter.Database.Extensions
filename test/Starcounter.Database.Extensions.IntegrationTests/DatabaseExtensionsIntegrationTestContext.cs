@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using TestUtilities;
+using Starcounter.Database.TestResources;
 using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
 {
-    public class DatabaseExtensionsIntegrationTestContext : TestAppHost
+    public class DatabaseExtensionsIntegrationTestContext : TemporaryDatabase
     {
         public DatabaseExtensionsIntegrationTestContext() : base() { }
 
