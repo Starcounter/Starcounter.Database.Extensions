@@ -6,7 +6,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class PreCommitTransactorTests : ServicedTests
     {
-        public PreCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public PreCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         [Database]
         public abstract class Person { }
@@ -15,7 +15,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public void TriggerCallbackOnInsert()
         {
             var hooked = new List<ulong>();
-            
+
             // Given
             var services = CreateServices
             (
