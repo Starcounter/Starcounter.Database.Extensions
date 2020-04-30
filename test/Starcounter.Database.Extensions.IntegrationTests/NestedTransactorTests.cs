@@ -7,9 +7,9 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class NestedTransactorTests : ServicedTests
     {
-        [Database] public class Person {}
+        [Database] public class Person { }
 
-        public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         [Fact]
         public void AllowNestedTransaction()
@@ -139,7 +139,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 s => s.Decorate<ITransactor, NestedTransactor>())
                 .GetRequiredService<ITransactor>();
 
-            Func<IDatabaseContext, bool> func = db => 
+            Func<IDatabaseContext, bool> func = db =>
             {
                 if (db.IsNested())
                 {
