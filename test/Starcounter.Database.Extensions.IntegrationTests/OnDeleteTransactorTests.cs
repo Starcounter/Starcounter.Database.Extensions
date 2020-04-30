@@ -6,15 +6,16 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class OnDeleteTransactorTests : ServicedTests
     {
-        public OnDeleteTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) {}
+        public OnDeleteTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
-        [Database] public abstract class Person : IDeleteAware
+        [Database]
+        public abstract class Person : IDeleteAware
         {
             [ProxyState]
             Action<Person> _whenDeleted;
 
             public void WhenDeleted(Action<Person> action) => _whenDeleted = action;
-            
+
             public void OnDelete(IDatabaseContext db) => _whenDeleted?.Invoke(this);
         }
 
@@ -31,7 +32,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
                 var deleted = false;
                 p.WhenDeleted(p => deleted = true);
-                
+
                 db.Delete(p);
 
                 return deleted;
