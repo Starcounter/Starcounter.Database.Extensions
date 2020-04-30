@@ -89,7 +89,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         [Fact]
-        public void ShouldRenderContextThatIndicatesNestingWhenRunningContinuation()
+        public async Task ShouldRenderContextThatIndicatesNestingWhenRunningContinuation()
         {
             var transactor = CreateServices(
                 s => s.Decorate<ITransactor, NestedTransactor>())
@@ -108,11 +108,12 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 return transactor.Transact(db => db.IsNested());
             });
 
-            Assert.True(t.GetAwaiter().GetResult());
+            var result = await t;
+            Assert.True(result);
         }
 
         [Fact]
-        public void NestedTransactAsyncFailingActionRenderFaultyTask()
+        public async Task NestedTransactAsyncFailingActionRenderFaultyTask()
         {
             var transactor = CreateServices(
                 s => s.Decorate<ITransactor, NestedTransactor>())
@@ -128,12 +129,12 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var t = transactor.TransactAsync(db => transactor.TransactAsync(action));
 
-            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            var e = await Assert.ThrowsAsync<Exception>(() => t);
             Assert.Equal("Foo", e.Message);
         }
 
         [Fact]
-        public void NestedTransactAsyncFailingFuncRenderFaultyTask()
+        public async Task NestedTransactAsyncFailingFuncRenderFaultyTask()
         {
             var transactor = CreateServices(
                 s => s.Decorate<ITransactor, NestedTransactor>())
@@ -151,7 +152,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var t = transactor.TransactAsync(db => transactor.TransactAsync(func));
 
-            var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+            var e = await Assert.ThrowsAsync<Exception>(() => t);
             Assert.Equal("Foo", e.Message);
         }
     }
