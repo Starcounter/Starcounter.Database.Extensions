@@ -84,10 +84,10 @@ namespace Starcounter.Database.Extensions
             {
                 action(context);
             }
-            catch
+            catch (Exception e)
             {
                 Rollback(context);
-                throw;
+                return Task.FromException(e);
             }
 
             return Task.CompletedTask;
@@ -108,10 +108,10 @@ namespace Starcounter.Database.Extensions
             {
                 return Task.FromResult(function(context));
             }
-            catch
+            catch (Exception e)
             {
                 Rollback(context);
-                throw;
+                return Task.FromException<T>(e);
             }
         }
 
@@ -130,10 +130,10 @@ namespace Starcounter.Database.Extensions
             {
                 return function(context);
             }
-            catch
+            catch (Exception e)
             {
                 Rollback(context);
-                throw;
+                return Task.FromException(e);
             }
         }
 
@@ -152,10 +152,10 @@ namespace Starcounter.Database.Extensions
             {
                 return function(context);
             }
-            catch
+            catch (Exception e)
             {
                 Rollback(context);
-                throw;
+                return Task.FromException<T>(e);
             }
         }
 
