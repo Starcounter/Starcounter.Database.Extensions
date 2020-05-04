@@ -114,47 +114,52 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        public override Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
+        public override async Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
             IDatabaseContext nested = _current.Value;
 
             if (nested == null)
             {
-                return base.TransactAsync(function, options);
+                await base.TransactAsync(function, options);
             }
-
-            var context = new NestedTransactionContext(nested);
-
-            try
+            else
             {
-                return function(context);
-            }
-            catch (Exception e)
-            {
-                Rollback(context);
-                return Task.FromException(e);
+                var context = new NestedTransactionContext(nested);
+
+                try
+                {
+                    await function(context);
+                    return;
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
         }
 
-        public override Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
+        public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
             IDatabaseContext nested = _current.Value;
 
             if (nested == null)
             {
-                return base.TransactAsync(function, options);
+                return await base.TransactAsync(function, options);
             }
-
-            var context = new NestedTransactionContext(nested);
-
-            try
+            else
             {
-                return function(context);
-            }
-            catch (Exception e)
-            {
-                Rollback(context);
-                return Task.FromException<T>(e);
+                var context = new NestedTransactionContext(nested);
+
+                try
+                {
+                    return await function(context);
+                }
+                catch
+                {
+                    Rollback(context);
+                    throw;
+                }
             }
         }
 
