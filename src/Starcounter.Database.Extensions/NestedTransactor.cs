@@ -69,13 +69,14 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        public override Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
+        public override async Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
             IDatabaseContext nested = _current.Value;
 
             if (nested == null)
             {
-                return base.TransactAsync(action, options);
+                await base.TransactAsync(action, options);
+                return;
             }
 
             var context = new NestedTransactionContext(nested);
@@ -84,34 +85,32 @@ namespace Starcounter.Database.Extensions
             {
                 action(context);
             }
-            catch (Exception e)
+            catch
             {
                 Rollback(context);
-                return Task.FromException(e);
+                throw;
             }
-
-            return Task.CompletedTask;
         }
 
-        public override Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
             IDatabaseContext nested = _current.Value;
 
             if (nested == null)
             {
-                return base.TransactAsync(function, options);
+                return await base.TransactAsync(function, options);
             }
 
             var context = new NestedTransactionContext(nested);
 
             try
             {
-                return Task.FromResult(function(context));
+                return function(context);
             }
-            catch (Exception e)
+            catch
             {
                 Rollback(context);
-                return Task.FromException<T>(e);
+                throw;
             }
         }
 
