@@ -129,7 +129,6 @@ namespace Starcounter.Database.Extensions
                 try
                 {
                     await function(context);
-                    return;
                 }
                 catch
                 {
