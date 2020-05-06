@@ -18,15 +18,12 @@ namespace Starcounter.Database.Extensions
     {
         class NestingContext
         {
-            public readonly IDatabaseContext DatabaseContext;
-            public NestingContext(IDatabaseContext context) => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
-            public Exception InnerException;
-        }
+            public IDatabaseContext DatabaseContext { get; }
 
-        void FailOuterIfInnerFailed()
-        {
-            if (_current.Value.InnerException != null)
-                throw new TransactionAbortedException("Nested transaction failed", _current.Value.InnerException);
+            public Exception InnerException { get; set; }
+
+            public NestingContext(IDatabaseContext context) 
+                => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         AsyncLocal<NestingContext> _current = new AsyncLocal<NestingContext>();
@@ -232,6 +229,14 @@ namespace Starcounter.Database.Extensions
         {
             db.Transaction.Rollback();
             _current.Value.InnerException = ex;
+        }
+
+        void FailOuterIfInnerFailed()
+        {
+            if (_current.Value.InnerException != null)
+            {
+                throw new TransactionAbortedException("Nested transaction failed", _current.Value.InnerException);
+            }
         }
     }
 }
