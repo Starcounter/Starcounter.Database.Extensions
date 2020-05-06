@@ -36,52 +36,76 @@ namespace Starcounter.Database.Extensions
         protected virtual void ExecuteCallback(IDatabaseContext db, Action<IDatabaseContext> action)
         {
             var context = EnterContext(db);
+            bool exceptionThrown = false;
             try
             {
                 action(context);
             }
+            catch
+            {
+                exceptionThrown = true;
+                throw;
+            }
             finally
             {
-                LeaveContext(context);
+                LeaveContext(context, exceptionThrown);
             }
         }
 
         protected virtual T ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, T> function)
         {
             var context = EnterContext(db);
+            bool exception_thrown = false;
             try
             {
                 return function(context);
             }
+            catch
+            {
+                exception_thrown = true;
+                throw;
+            }
             finally
             {
-                LeaveContext(context);
+                LeaveContext(context, exception_thrown);
             }
         }
 
-        protected virtual Task ExecuteCallback(IDatabaseContext db, Func<IDatabaseContext, Task> function)
+        protected virtual async Task ExecuteCallback(IDatabaseContext db, Func<IDatabaseContext, Task> function)
         {
             var context = EnterContext(db);
+            bool exception_thrown = false;
             try
             {
-                return function(context);
+                await function(context);
+            }
+            catch
+            {
+                exception_thrown = true;
+                throw;
             }
             finally
             {
-                LeaveContext(context);
+                LeaveContext(context, exception_thrown);
             }
         }
 
-        protected virtual Task<T> ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
+        protected virtual async Task<T> ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
         {
             var context = EnterContext(db);
+            bool exception_thrown = false;
             try
             {
-                return function(context);
+                return await function(context);
+            }
+            catch
+            {
+                exception_thrown = true;
+                throw;
             }
             finally
             {
-                LeaveContext(context);
+                LeaveContext(context, exception_thrown);
             }
         }
 
@@ -99,6 +123,8 @@ namespace Starcounter.Database.Extensions
         /// within the scope of the transaction and the kernel context.
         /// </summary>
         /// <param name="db">The database context returned by EnterContext.</param>
-        protected virtual void LeaveContext(IDatabaseContext db) { }
+        /// <param name="exceptionThrown">True if an exception was thrown when invoking the
+        /// delegate; false otherwise.</param>
+        protected virtual void LeaveContext(IDatabaseContext db, bool exceptionThrown) { }
     }
 }

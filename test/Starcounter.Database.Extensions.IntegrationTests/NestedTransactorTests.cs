@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -64,29 +65,57 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 s => s.Decorate<ITransactor, NestedTransactor>())
                 .GetRequiredService<ITransactor>();
 
-            var ex = transactor.Transact(db =>
+            try
             {
-                var p = db.Insert<Person>();
-                var id = db.GetOid(p);
+                transactor.Transact(db =>
+                {
+                    var p = db.Insert<Person>();
+                    var id = db.GetOid(p);
 
-                try
-                {
-                    transactor.Transact(_ => throw new Exception());
-                }
-                catch
-                {
-                    // Even if this outer transaction catches it; it should not be
+                    try
+                    {
+                        transactor.Transact(_ => throw new Exception());
+                    }
+                    catch
+                    {
+                    }
+
+                    // Even if this outer transaction catches inner exception it should not be
                     // able to continue, since the transaction is aborted.
-                    return Assert.ThrowsAny<DatabaseException>(() => db.Get<Person>(id));
-                }
+                    var ex = Assert.ThrowsAny<DatabaseException>(() => db.Get<Person>(id));
+                    Assert.NotNull(ex);
+                    Assert.Equal(4003u, ex.Code);
+                    Assert.Contains("ScErrNoTransactionAttached", ex.Message);
+                });
+            }
+            catch { }
 
-                return null;
-            });
-
-            Assert.NotNull(ex);
-            Assert.Equal(4003u, ex.Code);
-            Assert.Contains("ScErrNoTransactionAttached", ex.Message);
         }
+
+        [Fact]
+        public void ProhibitSupressingExceptionIfInnerFailed()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+
+            Assert.Throws<TransactionAbortedException>(() =>
+            {
+
+                transactor.Transact(db =>
+                {
+                    try
+                    {
+                        transactor.Transact(_ => throw new Exception());
+                    }
+                    catch
+                    {
+                    }
+                });
+            });
+        }
+
 
         [Fact]
         public async Task ShouldRenderContextThatIndicatesNestingWhenRunningContinuation()
