@@ -16,8 +16,6 @@ namespace Starcounter.Database.Extensions
 
         public virtual IChangeTracker ChangeTracker => _inner.ChangeTracker;
 
-        public virtual ITransaction Transaction => _inner.Transaction;
-
         public virtual void Delete(object obj) => _inner.Delete(obj);
 
         public virtual new bool Equals(object objA, object objB) => _inner.Equals(objA, objB);
