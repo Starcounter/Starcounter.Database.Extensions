@@ -18,15 +18,15 @@ namespace Starcounter.Database.Extensions
     {
         class NestingContext
         {
-            public readonly IDatabaseContext dbCtx;
-            public NestingContext(IDatabaseContext ctx) { dbCtx = ctx; }
-            public Exception inner_exception;
+            public readonly IDatabaseContext DatabaseContext;
+            public NestingContext(IDatabaseContext context) => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
+            public Exception InnerException;
         }
 
         void FailOuterIfInnerFailed()
         {
-            if (_current.Value.inner_exception != null)
-                throw new TransactionAbortedException("Nested transaction failed", _current.Value.inner_exception);
+            if (_current.Value.InnerException != null)
+                throw new TransactionAbortedException("Nested transaction failed", _current.Value.InnerException);
         }
 
         AsyncLocal<NestingContext> _current = new AsyncLocal<NestingContext>();
@@ -40,7 +40,7 @@ namespace Starcounter.Database.Extensions
 
         public override void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -64,7 +64,7 @@ namespace Starcounter.Database.Extensions
 
         public override T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -88,7 +88,7 @@ namespace Starcounter.Database.Extensions
 
         public override async Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -112,7 +112,7 @@ namespace Starcounter.Database.Extensions
 
         public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -136,7 +136,7 @@ namespace Starcounter.Database.Extensions
 
         public override async Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -161,7 +161,7 @@ namespace Starcounter.Database.Extensions
 
         public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -187,7 +187,7 @@ namespace Starcounter.Database.Extensions
 
         public override bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value?.dbCtx;
+            IDatabaseContext nested = _current.Value?.DatabaseContext;
 
             if (nested == null)
             {
@@ -219,7 +219,7 @@ namespace Starcounter.Database.Extensions
         {
             try
             {
-                if ( !exception_thrown)
+                if (!exception_thrown)
                     FailOuterIfInnerFailed();
             }
             finally
@@ -231,7 +231,7 @@ namespace Starcounter.Database.Extensions
         protected void Rollback(IDatabaseContext db, Exception ex)
         {
             db.Transaction.Rollback();
-            _current.Value.inner_exception = ex;
+            _current.Value.InnerException = ex;
         }
     }
 }
