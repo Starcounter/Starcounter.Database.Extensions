@@ -18,9 +18,9 @@ namespace Starcounter.Database.Extensions
     {
         class NestingContext
         {
-            public IDatabaseContext DatabaseContext { get; }
+            public readonly IDatabaseContext DatabaseContext;
 
-            public Exception InnerException { get; set; }
+            public Exception InnerException;
 
             public NestingContext(IDatabaseContext context) 
                 => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
