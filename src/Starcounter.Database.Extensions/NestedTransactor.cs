@@ -212,12 +212,14 @@ namespace Starcounter.Database.Extensions
             return db;
         }
 
-        protected override void LeaveContext(IDatabaseContext db, bool exception_thrown)
+        protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
         {
             try
             {
-                if (!exception_thrown)
+                if (!exceptionThrown)
+                {
                     FailOuterIfInnerFailed();
+                }
             }
             finally
             {
