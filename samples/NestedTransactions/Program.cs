@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database;
 using Starcounter.Database.Extensions;
-using Starcounter.Database.Linq;
 
 namespace NestedTransactions
 {
@@ -33,10 +32,8 @@ namespace NestedTransactions
                 
                 transactor.Transact(db =>
                 {
-                    // Without NestedTransactor, this would not be allowed.
-                    // Starcounter natively does not support nested transactions and
-                    // will raise an exception for any Transact done as part of an
-                    // already running transaction.
+                    // Without NestedTransactor, this would execute as a new, independent
+                    // transaction. Now, it instead join the outer one.
 
                     var john = db.Insert<Person>();
                     john.Name = "John Doe";
