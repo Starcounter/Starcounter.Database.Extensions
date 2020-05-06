@@ -54,7 +54,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                CaptureException(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -78,7 +78,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                CaptureException(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -102,7 +102,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                CaptureException(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -126,7 +126,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                CaptureException(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -150,7 +150,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    CaptureException(context, ex);
+                    CaptureException(ex);
                     throw;
                 }
             }
@@ -176,7 +176,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    CaptureException(context, ex);
+                    CaptureException(ex);
                     throw;
                 }
             }
@@ -201,7 +201,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                CaptureException(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -227,10 +227,7 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected void CaptureException(IDatabaseContext db, Exception ex)
-        {
-            _current.Value.InnerException = ex;
-        }
+        protected void CaptureException(Exception ex) => _current.Value.InnerException = ex;
 
         void FailOuterIfInnerFailed()
         {
