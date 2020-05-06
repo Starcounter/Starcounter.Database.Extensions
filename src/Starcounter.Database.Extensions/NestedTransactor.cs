@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Starcounter.Database.Extensions
 {
@@ -15,7 +16,20 @@ namespace Starcounter.Database.Extensions
     /// </summary>
     public class NestedTransactor : TransactorBase, INestedTransactor
     {
-        AsyncLocal<IDatabaseContext> _current = new AsyncLocal<IDatabaseContext>();
+        class NestingContext
+        {
+            public readonly IDatabaseContext dbCtx;
+            public NestingContext(IDatabaseContext ctx) { dbCtx = ctx; }
+            public Exception inner_exception;
+        }
+
+        void FailOuterIfInnerFailed()
+        {
+            if (_current.Value.inner_exception != null)
+                throw new TransactionAbortedException("Nested transaction failed", _current.Value.inner_exception);
+        }
+
+        AsyncLocal<NestingContext> _current = new AsyncLocal<NestingContext>();
 
         internal class NestedTransactionContext : ContextBase
         {
@@ -26,7 +40,7 @@ namespace Starcounter.Database.Extensions
 
         public override void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -39,17 +53,18 @@ namespace Starcounter.Database.Extensions
             try
             {
                 action(context);
+                FailOuterIfInnerFailed();
             }
-            catch
+            catch (Exception ex)
             {
-                Rollback(context);
+                Rollback(context, ex);
                 throw;
             }
         }
 
         public override T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -60,18 +75,20 @@ namespace Starcounter.Database.Extensions
 
             try
             {
-                return function(context);
+                T t = function(context);
+                FailOuterIfInnerFailed();
+                return t;
             }
-            catch
+            catch (Exception ex)
             {
-                Rollback(context);
+                Rollback(context, ex);
                 throw;
             }
         }
 
         public override async Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -84,17 +101,18 @@ namespace Starcounter.Database.Extensions
             try
             {
                 action(context);
+                FailOuterIfInnerFailed();
             }
-            catch
+            catch (Exception ex)
             {
-                Rollback(context);
+                Rollback(context, ex);
                 throw;
             }
         }
 
         public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -105,18 +123,20 @@ namespace Starcounter.Database.Extensions
 
             try
             {
-                return function(context);
+                T t = function(context);
+                FailOuterIfInnerFailed();
+                return t;
             }
-            catch
+            catch (Exception ex)
             {
-                Rollback(context);
+                Rollback(context, ex);
                 throw;
             }
         }
 
         public override async Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -129,10 +149,11 @@ namespace Starcounter.Database.Extensions
                 try
                 {
                     await function(context);
+                    FailOuterIfInnerFailed();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    Rollback(context);
+                    Rollback(context, ex);
                     throw;
                 }
             }
@@ -140,7 +161,7 @@ namespace Starcounter.Database.Extensions
 
         public override async Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -152,11 +173,13 @@ namespace Starcounter.Database.Extensions
 
                 try
                 {
-                    return await function(context);
+                    T t = await function(context);
+                    FailOuterIfInnerFailed();
+                    return t;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    Rollback(context);
+                    Rollback(context, ex);
                     throw;
                 }
             }
@@ -164,7 +187,7 @@ namespace Starcounter.Database.Extensions
 
         public override bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            IDatabaseContext nested = _current.Value;
+            IDatabaseContext nested = _current.Value?.dbCtx;
 
             if (nested == null)
             {
@@ -176,19 +199,39 @@ namespace Starcounter.Database.Extensions
             try
             {
                 action(context);
+                FailOuterIfInnerFailed();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                Rollback(context);
+                Rollback(context, ex);
                 throw;
             }
         }
 
-        protected override IDatabaseContext EnterContext(IDatabaseContext db) => _current.Value = db;
+        protected override IDatabaseContext EnterContext(IDatabaseContext db)
+        {
+            _current.Value = new NestingContext(db);
+            return db;
+        }
 
-        protected override void LeaveContext(IDatabaseContext db) => _current.Value = null;
+        protected override void LeaveContext(IDatabaseContext db, bool exception_thrown)
+        {
+            try
+            {
+                if ( !exception_thrown)
+                    FailOuterIfInnerFailed();
+            }
+            finally
+            {
+                _current.Value = null;
+            }
+        }
 
-        protected void Rollback(IDatabaseContext db) => db.Transaction.Rollback();
+        protected void Rollback(IDatabaseContext db, Exception ex)
+        {
+            db.Transaction.Rollback();
+            _current.Value.inner_exception = ex;
+        }
     }
 }
