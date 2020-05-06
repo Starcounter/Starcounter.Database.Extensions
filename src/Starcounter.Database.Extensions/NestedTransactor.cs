@@ -54,7 +54,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(context, ex);
                 throw;
             }
         }
@@ -78,7 +78,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(context, ex);
                 throw;
             }
         }
@@ -102,7 +102,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(context, ex);
                 throw;
             }
         }
@@ -126,7 +126,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(context, ex);
                 throw;
             }
         }
@@ -150,7 +150,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    Rollback(context, ex);
+                    CaptureException(context, ex);
                     throw;
                 }
             }
@@ -176,7 +176,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    Rollback(context, ex);
+                    CaptureException(context, ex);
                     throw;
                 }
             }
@@ -201,7 +201,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(context, ex);
                 throw;
             }
         }
@@ -227,9 +227,8 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected void Rollback(IDatabaseContext db, Exception ex)
+        protected void CaptureException(IDatabaseContext db, Exception ex)
         {
-            db.Transaction.Rollback();
             _current.Value.InnerException = ex;
         }
 
