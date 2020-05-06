@@ -36,19 +36,19 @@ namespace Starcounter.Database.Extensions
         protected virtual void ExecuteCallback(IDatabaseContext db, Action<IDatabaseContext> action)
         {
             var context = EnterContext(db);
-            bool exception_thrown = false;
+            bool exceptionThrown = false;
             try
             {
                 action(context);
             }
             catch
             {
-                exception_thrown = true;
+                exceptionThrown = true;
                 throw;
             }
             finally
             {
-                LeaveContext(context, exception_thrown);
+                LeaveContext(context, exceptionThrown);
             }
         }
 
@@ -123,6 +123,8 @@ namespace Starcounter.Database.Extensions
         /// within the scope of the transaction and the kernel context.
         /// </summary>
         /// <param name="db">The database context returned by EnterContext.</param>
-        protected virtual void LeaveContext(IDatabaseContext db, bool exception_thrown) { }
+        /// <param name="exceptionThrown">True if an exception was thrown when invoking the
+        /// delegate; false otherwise.</param>
+        protected virtual void LeaveContext(IDatabaseContext db, bool exceptionThrown) { }
     }
 }
