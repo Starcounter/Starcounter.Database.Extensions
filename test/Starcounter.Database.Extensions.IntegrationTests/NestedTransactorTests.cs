@@ -59,40 +59,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         [Fact]
-        public void ShouldRollbackOuterTransactionWhenNestedScopeFail()
-        {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
-            try
-            {
-                transactor.Transact(db =>
-                {
-                    var p = db.Insert<Person>();
-                    var id = db.GetOid(p);
-
-                    try
-                    {
-                        transactor.Transact(_ => throw new Exception());
-                    }
-                    catch
-                    {
-                    }
-
-                    // Even if this outer transaction catches inner exception it should not be
-                    // able to continue, since the transaction is aborted.
-                    var ex = Assert.ThrowsAny<DatabaseException>(() => db.Get<Person>(id));
-                    Assert.NotNull(ex);
-                    Assert.Equal(4003u, ex.Code);
-                    Assert.Contains("ScErrNoTransactionAttached", ex.Message);
-                });
-            }
-            catch { }
-
-        }
-
-        [Fact]
         public void ProhibitSupressingExceptionIfInnerFailed()
         {
             var transactor = CreateServices(

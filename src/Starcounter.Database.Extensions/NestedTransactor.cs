@@ -18,9 +18,9 @@ namespace Starcounter.Database.Extensions
     {
         class NestingContext
         {
-            public IDatabaseContext DatabaseContext { get; }
+            public readonly IDatabaseContext DatabaseContext;
 
-            public Exception InnerException { get; set; }
+            public Exception InnerException;
 
             public NestingContext(IDatabaseContext context) 
                 => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
@@ -54,7 +54,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -78,7 +78,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -102,7 +102,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -126,7 +126,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -150,7 +150,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    Rollback(context, ex);
+                    CaptureException(ex);
                     throw;
                 }
             }
@@ -176,7 +176,7 @@ namespace Starcounter.Database.Extensions
                 }
                 catch (Exception ex)
                 {
-                    Rollback(context, ex);
+                    CaptureException(ex);
                     throw;
                 }
             }
@@ -201,7 +201,7 @@ namespace Starcounter.Database.Extensions
             }
             catch (Exception ex)
             {
-                Rollback(context, ex);
+                CaptureException(ex);
                 throw;
             }
         }
@@ -212,12 +212,14 @@ namespace Starcounter.Database.Extensions
             return db;
         }
 
-        protected override void LeaveContext(IDatabaseContext db, bool exception_thrown)
+        protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
         {
             try
             {
-                if (!exception_thrown)
+                if (!exceptionThrown)
+                {
                     FailOuterIfInnerFailed();
+                }
             }
             finally
             {
@@ -225,11 +227,7 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected void Rollback(IDatabaseContext db, Exception ex)
-        {
-            db.Transaction.Rollback();
-            _current.Value.InnerException = ex;
-        }
+        protected void CaptureException(Exception ex) => _current.Value.InnerException = ex;
 
         void FailOuterIfInnerFailed()
         {
