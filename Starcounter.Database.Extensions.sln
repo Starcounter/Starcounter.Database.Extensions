@@ -26,6 +26,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NestedTransactions", "samples\NestedTransactions\NestedTransactions.csproj", "{F79A70C9-9333-4987-9754-A62B2496CB1B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{B7653081-D17A-4DC5-8192-648864B130ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7653081-D17A-4DC5-8192-648864B130ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7653081-D17A-4DC5-8192-648864B130ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F79A70C9-9333-4987-9754-A62B2496CB1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F79A70C9-9333-4987-9754-A62B2496CB1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F79A70C9-9333-4987-9754-A62B2496CB1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F79A70C9-9333-4987-9754-A62B2496CB1B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,6 +58,7 @@ Global
 		{360D65A5-6EF9-4BBE-BE9A-38F15D6BDF45} = {95830FC9-D2A9-4C23-ADF5-47FAAFAD2390}
 		{44C71177-FAAA-4E08-A097-5BFA3E5D6BB5} = {A7FF5EC3-CEB2-4B59-AA80-8E0CCC64A805}
 		{B7653081-D17A-4DC5-8192-648864B130ED} = {16D71DAA-401E-4400-8950-67429554CCDB}
+		{F79A70C9-9333-4987-9754-A62B2496CB1B} = {16D71DAA-401E-4400-8950-67429554CCDB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B2CDA871-6A0E-4E5B-9F24-CE51B128680C}

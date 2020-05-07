@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database.ChangeTracking;
 using Xunit;
@@ -7,13 +9,17 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class MultilevelTransactorDecorationTests : ServicedTests
     {
+        public MultilevelTransactorDecorationTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+
+        [Database]
         public abstract class Person : IDeleteAware
         {
-            public bool WasHooked { get; set; }
+            [ProxyState]
+            Action<Person> _whenDeleted;
 
-            public bool WasDeleted { get; set; }
+            public void WhenDeleted(Action<Person> action) => _whenDeleted = action;
 
-            public void OnDelete(IDatabaseContext db) => WasDeleted = true;
+            public void OnDelete(IDatabaseContext db) => _whenDeleted?.Invoke(this);
         }
 
         [Fact]
@@ -31,8 +37,13 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var result = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+
                 db.Delete(p);
-                return p.WasDeleted;
+
+                return deleted;
             });
 
             Assert.IsType<PreCommitTransactor>(transactor);
@@ -54,8 +65,13 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var result = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+
                 db.Delete(p);
-                return p.WasDeleted;
+
+                return deleted;
             });
 
             Assert.IsType<OnDeleteTransactor>(transactor);
@@ -65,6 +81,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void HookIsCalledWhenOuterTransactorIsUsed()
         {
+            var hooked = new List<ulong>();
+
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
@@ -72,17 +90,18 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     .Decorate<ITransactor, OnDeleteTransactor>()
                     .Configure<PreCommitOptions>(o =>
                     {
-                        o.Hook<Person>((db, change) => db.Get<Person>(change.Oid).WasHooked = true);
+                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
                     })
             ).GetRequiredService<ITransactor>();
 
             (ulong Id, bool WasHooked) before = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
-                return (db.GetOid(p), p.WasHooked);
+                var id = db.GetOid(p);
+                return (id, hooked.Contains(id));
             });
 
-            var after = transactor.Transact(db => db.Get<Person>(before.Id).WasHooked);
+            var after = transactor.Transact(db => hooked.Contains(before.Id));
 
             Assert.IsType<OnDeleteTransactor>(transactor);
             Assert.False(before.WasHooked);
@@ -92,6 +111,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void HookIsCalledWhenUsedAsOuterTransactor()
         {
+            var hooked = new List<ulong>();
+
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
@@ -99,17 +120,18 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     .Decorate<ITransactor, PreCommitTransactor>()
                     .Configure<PreCommitOptions>(o =>
                     {
-                        o.Hook<Person>((db, change) => db.Get<Person>(change.Oid).WasHooked = true);
+                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
                     })
             ).GetRequiredService<ITransactor>();
 
             (ulong Id, bool WasHooked) before = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
-                return (db.GetOid(p), p.WasHooked);
+                var id = db.GetOid(p);
+                return (id, hooked.Contains(id));
             });
 
-            var after = transactor.Transact(db => db.Get<Person>(before.Id).WasHooked);
+            var after = transactor.Transact(db => hooked.Contains(before.Id));
 
             Assert.IsType<PreCommitTransactor>(transactor);
             Assert.False(before.WasHooked);
@@ -143,8 +165,13 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+
                 db.Delete(p);
-                return p.WasDeleted;
+
+                return deleted;
             });
 
             Assert.IsType<OnDeleteTransactor>(transactor);
@@ -179,13 +206,78 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var wasDeleted = transactor.Transact(db =>
             {
                 var p = db.Get<Person>(id);
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+
                 db.Delete(p);
-                return p.WasDeleted;
+
+                return deleted;
             });
 
             Assert.IsType<PreCommitTransactor>(transactor);
             Assert.Equal(expectedChanges, recordedChanges);
             Assert.True(wasDeleted);
+        }
+
+        [Theory]
+        [InlineData(typeof(OnDeleteTransactor), typeof(PreCommitTransactor), typeof(NestedTransactor))]
+        [InlineData(typeof(PreCommitTransactor), typeof(OnDeleteTransactor), typeof(NestedTransactor))]
+        [InlineData(typeof(PreCommitTransactor), typeof(NestedTransactor), typeof(OnDeleteTransactor))]
+        public void MixedTransactorDecorationSetupsPassCommonTests(Type transactorDecorator0, Type transactorDecorator1, Type transactorDecorator2)
+        {
+            var hooked = new List<ulong>();
+
+            var services = CreateServices
+            (
+                serviceCollection => serviceCollection
+                    .Decorate(typeof(ITransactor), transactorDecorator0)
+                    .Decorate(typeof(ITransactor), transactorDecorator1)
+                    .Decorate(typeof(ITransactor), transactorDecorator2)
+                    .Configure<PreCommitOptions>(o =>
+                    {
+                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                    })
+            );
+
+            var transactor = services.GetRequiredService<ITransactor>();
+
+            (ulong Id, bool WasHooked) resultFirst = transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                var id = db.GetOid(p);
+
+                var innerId = transactor.Transact(db =>
+                {
+                    var p2 = db.Insert<Person>();
+                    return db.GetOid(p2);
+                });
+
+                var expected = new[] { id, innerId };
+                var result = db.ChangeTracker.Changes
+                    .Select(c => c.Oid)
+                    .OrderBy(id => id)
+                    .ToArray();
+
+                Assert.Equal(expected, result);
+
+                return (id, hooked.Contains(id));
+            });
+
+            (bool WasDeleted, bool WasHooked) resultSecond = transactor.Transact(db =>
+            {
+                var p = db.Get<Person>(resultFirst.Id);
+
+                var deleted = false;
+                p.WhenDeleted(p => deleted = true);
+                db.Delete(p);
+
+                return (deleted, hooked.Contains(resultFirst.Id));
+            });
+
+            Assert.False(resultFirst.WasHooked);
+            Assert.True(resultSecond.WasHooked);
+            Assert.True(resultSecond.WasDeleted);
         }
     }
 }

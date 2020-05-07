@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Starcounter.Database.ChangeTracking;
 using Xunit;
@@ -7,12 +8,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public class DbCoreTests : ServicedTests
     {
+        public DbCoreTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+
         public class Person { }
 
         [Fact]
         public void ServiceSetupYieldExpectedImplementations()
         {
-            var transactor = CreateServices().GetRequiredService<ITransactor>();
+            var transactor = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
             var context = transactor.Transact(db => db);
 
             Assert.IsType<DbTransactor>(transactor);
@@ -22,7 +25,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertOneReturnFirstId()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             t.Transact(db =>
             {
@@ -34,7 +37,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertOneReturnExpectedChanges()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             t.Transact(db =>
             {
@@ -49,7 +52,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void DeleteResultInObjectBeingRemoved()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             var id = t.Transact(db =>
             {
@@ -69,7 +72,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void InsertThenDeleteResultInNoChanges()
         {
-            var t = CreateServices().GetRequiredService<ITransactor>();
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
 
             var changes = t.Transact(db =>
             {
@@ -80,6 +83,62 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
 
             Assert.Empty(changes);
+        }
+
+        [Fact]
+        public async Task CoreTransactorDontAllowNesting()
+        {
+            var t = CreateServices(withRealTemporaryDatabase: false).GetRequiredService<ITransactor>();
+
+            Action transact = () => t.Transact(_ => t.Transact(__ => { }));
+            Func<object> transactFunc = () => t.Transact(_ => t.Transact(__ => new object()));
+            Func<Task> transactAsync = () => t.TransactAsync(_ => t.TransactAsync(__ => { }));
+            Func<object> tryTransact = () => t.TryTransact(_ => t.TryTransact(__ => { }));
+
+            Assert.Throws<InvalidOperationException>(transact);
+            Assert.Throws<InvalidOperationException>(transactFunc);
+            Assert.Throws<InvalidOperationException>(tryTransact);
+            await Assert.ThrowsAsync<InvalidOperationException>(transactAsync);
+        }
+
+        [Fact]
+        public async Task TransactAsyncFailingActionRenderFaultyTask()
+        {
+            var transactor = CreateServices().GetRequiredService<ITransactor>();
+
+            Action<IDatabaseContext> action = db => throw new Exception("Foo");
+
+            var t = transactor.TransactAsync(action);
+
+            {
+                var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+                Assert.Equal("Foo", e.Message);
+            }
+
+            {
+                var e = await Assert.ThrowsAsync<Exception>(() => t);
+                Assert.Equal("Foo", e.Message);
+            }
+        }
+
+        [Fact]
+        public async Task TransactAsyncFailingFuncRenderFaultyTask()
+        {
+            var transactor = CreateServices().GetRequiredService<ITransactor>();
+
+            Func<IDatabaseContext, bool> func = db => throw new Exception("Foo");
+
+            var t = transactor.TransactAsync(func);
+
+            {
+                var e = Assert.Throws<Exception>(() => t.GetAwaiter().GetResult());
+                Assert.Equal("Foo", e.Message);
+            }
+
+            {
+                var e = await Assert.ThrowsAsync<Exception>(() => t);
+                Assert.Equal("Foo", e.Message);
+            }
         }
     }
 }

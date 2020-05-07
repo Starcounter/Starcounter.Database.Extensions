@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -6,37 +6,39 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class PreCommitTransactorTests : ServicedTests
     {
-        public abstract class Person
-        {
-            public bool WasHooked { get; set; }
-        }
+        public PreCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+
+        [Database]
+        public abstract class Person { }
 
         [Fact]
         public void TriggerCallbackOnInsert()
         {
+            var hooked = new List<ulong>();
+
             // Given
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
                     .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
                     {
-                        var p = db.Get<Person>(change.Oid);
-                        p.WasHooked = true;
+                        hooked.Add(change.Oid);
                     }))
                     .Decorate<ITransactor, PreCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
             // Act
-            Tuple<bool, ulong> before = transactor.Transact(db =>
+            (bool WasHooked, ulong Id) before = transactor.Transact(db =>
             {
                 var p = db.Insert<Person>();
-                return Tuple.Create(p.WasHooked, db.GetOid(p));
+                var id = db.GetOid(p);
+                return (hooked.Contains(id), id);
             });
 
             // Assert
-            var after = transactor.Transact(db => db.Get<Person>(before.Item2).WasHooked);
-            Assert.False(before.Item1);
+            var after = transactor.Transact(db => hooked.Contains(before.Id));
+            Assert.False(before.WasHooked);
             Assert.True(after);
         }
     }

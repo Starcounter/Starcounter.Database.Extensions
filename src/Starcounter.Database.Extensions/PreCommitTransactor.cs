@@ -34,7 +34,7 @@ namespace Starcounter.Database.Extensions
 
         protected override IDatabaseContext EnterContext(IDatabaseContext db) => new PreCommitContext(db);
 
-        protected override void LeaveContext(IDatabaseContext db)
+        protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
             => ((PreCommitContext)db).ExecutePreCommitHooks(hookOptions);
     }
 }
