@@ -109,6 +109,35 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         [Fact]
+        public void HookIsNotCalledWhenOuterTransactorIsUsedAndTransactionFail()
+        {
+            var hooked = new List<ulong>();
+
+            var transactor = CreateServices
+            (
+                serviceCollection => serviceCollection
+                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, OnDeleteTransactor>()
+                    .Configure<PreCommitOptions>(o =>
+                    {
+                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                    })
+            ).GetRequiredService<ITransactor>();
+
+            ulong id = 0;
+            Assert.Throws<Exception>(() => transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                id = db.GetOid(p);
+                throw new Exception();
+            }));
+
+            var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
+            Assert.False(existInDatabase);
+            Assert.Empty(hooked);
+        }
+
+        [Fact]
         public void HookIsCalledWhenUsedAsOuterTransactor()
         {
             var hooked = new List<ulong>();

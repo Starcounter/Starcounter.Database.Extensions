@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -40,6 +41,38 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var after = transactor.Transact(db => hooked.Contains(before.Id));
             Assert.False(before.WasHooked);
             Assert.True(after);
+        }
+
+        [Fact]
+        public void DontInvokeHooksWhenTransactRaiseException()
+        {
+            var hooked = new List<ulong>();
+
+            // Given
+            var services = CreateServices
+            (
+                serviceCollection => serviceCollection
+                    .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
+                    {
+                        hooked.Add(change.Oid);
+                    }))
+                    .Decorate<ITransactor, PreCommitTransactor>()
+            );
+            var transactor = services.GetRequiredService<ITransactor>();
+
+            // Act
+            ulong id = 0;
+            Assert.Throws<Exception>(() => transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                id = db.GetOid(p);
+                throw new Exception();
+            }));
+
+            // Assert
+            var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
+            Assert.False(existInDatabase);
+            Assert.Empty(hooked);
         }
     }
 }
