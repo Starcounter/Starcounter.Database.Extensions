@@ -1,3 +1,5 @@
+using System;
+
 namespace Starcounter.Database.Extensions
 {
     public static class ContextSponsor
@@ -12,6 +14,8 @@ namespace Starcounter.Database.Extensions
         /// </remarks>
         /// </summary>
         public static bool IsNested(this IDatabaseContext context) 
-            => context is NestedTransactor.NestedTransactionContext;
+            => context is IServiceProvider sp 
+                ? sp.GetService(typeof(NestedTransactor.NestedTransactionContext)) != null 
+                : false;
     }
 }
