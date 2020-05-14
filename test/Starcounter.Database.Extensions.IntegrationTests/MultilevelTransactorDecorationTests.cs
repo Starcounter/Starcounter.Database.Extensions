@@ -209,6 +209,21 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         }
 
         [Fact]
+        public void IsNestedWorksEvenWithOuterTransactor()
+        {
+            var transactor = CreateServices
+            (
+                serviceCollection => serviceCollection
+                    .Decorate<ITransactor, NestedTransactor>()
+                    .Decorate<ITransactor, OnDeleteTransactor>()
+            ).GetRequiredService<ITransactor>();
+
+            var result = transactor.Transact(db => transactor.Transact(db => db.IsNested()));
+
+            Assert.True(result);
+        }
+
+        [Fact]
         public void HookAndOnDeleteIsCalledWhenUsedWithOuterPreCommitTransactor()
         {
             var recordedChanges = new Stack<(ulong Id, ChangeType Type)>();
