@@ -3,7 +3,7 @@ using Starcounter.Database.ChangeTracking;
 
 namespace Starcounter.Database.Extensions
 {
-    public abstract class ContextBase : IDatabaseContext
+    public abstract class ContextBase : IDatabaseContext, IServiceProvider
     {
         readonly IDatabaseContext _inner;
 
@@ -27,5 +27,12 @@ namespace Starcounter.Database.Extensions
         public virtual T Insert<T>() where T : class => _inner.Insert<T>();
 
         public virtual ISqlResult<T> Sql<T>(string query, params object[] values) => _inner.Sql<T>(query, values);
+
+        object IServiceProvider.GetService(Type serviceType)
+        {
+            return GetService(serviceType) ?? (_inner is IServiceProvider sp ? sp.GetService(serviceType) : default);
+        }
+
+        protected virtual object GetService(Type serviceType) => null;
     }
 }
