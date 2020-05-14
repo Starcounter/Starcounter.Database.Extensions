@@ -291,19 +291,20 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 var p = db.Insert<Person>();
                 var id = db.GetOid(p);
 
-                var innerId = transactor.Transact(db =>
+                (ulong InnerId, bool WasNested) innerResult = transactor.Transact(db =>
                 {
                     var p2 = db.Insert<Person>();
-                    return db.GetOid(p2);
+                    return (db.GetOid(p2), db.IsNested());
                 });
 
-                var expected = new[] { id, innerId };
+                var expected = new[] { id, innerResult.InnerId };
                 var result = db.ChangeTracker.Changes
                     .Select(c => c.Oid)
                     .OrderBy(id => id)
                     .ToArray();
 
                 Assert.Equal(expected, result);
+                Assert.True(innerResult.WasNested);
 
                 return (id, hooked.Contains(id));
             });
