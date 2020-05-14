@@ -31,6 +31,9 @@ namespace Starcounter.Database.Extensions
         internal class NestedTransactionContext : ContextBase
         {
             public NestedTransactionContext(IDatabaseContext inner) : base(inner) { }
+
+            protected override object GetService(Type serviceType) 
+                => serviceType.Equals(typeof(NestedTransactionContext)) ? this : base.GetService(serviceType);
         }
 
         public NestedTransactor(ITransactor innerTransactor) : base(innerTransactor) { }
