@@ -39,6 +39,13 @@ namespace Starcounter.Database.Extensions
         {
             IDatabaseContext nested = _current.Value?.DatabaseContext;
 
+            if (Data.Transaction.Current != null && (Data.Transaction.Current.Flags & TransactionFlags.ReadOnly) != 0)
+            {
+                base.Transact(action, options);
+                Data.Transaction.Current.Restart();
+                return;
+            }
+
             if (nested == null)
             {
                 base.Transact(action, options);
@@ -231,7 +238,7 @@ namespace Starcounter.Database.Extensions
 
         void FailOuterIfInnerFailed()
         {
-            if (_current.Value.InnerException != null)
+            if (_current.Value?.InnerException != null)
             {
                 throw new TransactionAbortedException("Nested transaction failed", _current.Value.InnerException);
             }

@@ -8,7 +8,11 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 {
     public sealed class NestedTransactorTests : ServicedTests
     {
-        [Database] public class Person { }
+        [Database]
+        public abstract class Person 
+        {
+            public abstract string Name { get; set; }
+        }
 
         public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
@@ -149,6 +153,42 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var e = await Assert.ThrowsAsync<Exception>(() => t);
             Assert.Equal("Foo", e.Message);
+        }
+
+        [Fact]
+        public void NestedTransactRestartsParentReadOnlyTransaction()
+        {
+            var transactor = CreateServices(
+                s => s.Decorate<ITransactor, NestedTransactor>())
+                .GetRequiredService<ITransactor>();
+
+            transactor.Transact(odb =>
+            {
+                Person p = null;
+
+                transactor.Transact(idb =>
+                {
+                    p = idb.Insert<Person>();
+                });
+
+                Assert.NotNull(p);
+                Assert.NotEqual(0UL, odb.GetOid(p));
+                Assert.Null(p.Name);
+
+                transactor.Transact(idb =>
+                {
+                    p.Name = nameof(NestedTransactRestartsParentReadOnlyTransaction);
+                });
+
+                Assert.Equal(nameof(NestedTransactRestartsParentReadOnlyTransaction), p.Name);
+
+                transactor.Transact(idb =>
+                {
+                    idb.Delete(p);
+                });
+
+                Assert.Throws<DatabaseException>(() => Assert.NotNull(p.Name));
+            }, new TransactOptions(TransactionFlags.ReadOnly));
         }
     }
 }
