@@ -9,75 +9,74 @@ namespace Starcounter.Database.Extensions.IntegrationTests
     public sealed class NestedTransactorTests : ServicedTests
     {
         [Database]
-        public abstract class Person 
+        public abstract class Person
         {
             public abstract string Name { get; set; }
         }
 
-        public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+        private ITransactor _transactor;
+
+        public NestedTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context)
+        {
+            _transactor = CreateServices(s => s.Decorate<ITransactor, NestedTransactor>())
+                 .GetRequiredService<ITransactor>();
+        }
 
         [Fact]
         public void AllowNestedTransaction()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
+            AllowNestedTransactionImpl();
+        }
 
-            transactor.Transact(db =>
+        [Fact]
+        public void AllowNestedTransactionWithinReadOnlyTransaction()
+        {
+            _transactor.Transact(_ =>
             {
-                transactor.Transact(db => { });
-            });
+                AllowNestedTransactionImpl();
+            }, new TransactOptions(TransactionFlags.ReadOnly));
         }
 
         [Fact]
         public void ShouldRenderContextThatIndicatesNesting()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
+            ShouldRenderContextThatIndicatesNestingImpl();
+        }
 
-            var nested = transactor.Transact(db =>
+        [Fact]
+        public void ShouldRenderContextThatIndicatesNestingWithinReadOnlyTransaction()
+        {
+            _transactor.Transact(_ =>
             {
-                return transactor.Transact(db => db.IsNested());
-            });
-
-            Assert.True(nested);
+                ShouldRenderContextThatIndicatesNestingImpl();
+            }, new TransactOptions(TransactionFlags.ReadOnly));
         }
 
         [Fact]
         public void ShouldHaveOuterChangesVisibleInNestedTransaction()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
+            ShouldHaveOuterChangesVisibleInNestedTransactionImpl();
+        }
 
-            var result = transactor.Transact(db =>
+        [Fact]
+        public void ShouldHaveOuterChangesVisibleInNestedTransactionWithinReadOnlyTransaction()
+        {
+            _transactor.Transact(_ =>
             {
-                var p = db.Insert<Person>();
-                var id = db.GetOid(p);
-
-                return transactor.Transact(db => db.Get<Person>(id) != null);
-            });
-
-            Assert.True(result);
+                ShouldHaveOuterChangesVisibleInNestedTransactionImpl();
+            }, new TransactOptions(TransactionFlags.ReadOnly));
         }
 
         [Fact]
         public void ProhibitSupressingExceptionIfInnerFailed()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
-
             Assert.Throws<TransactionAbortedException>(() =>
             {
-
-                transactor.Transact(db =>
+                _transactor.Transact(db =>
                 {
                     try
                     {
-                        transactor.Transact(_ => throw new Exception());
+                        _transactor.Transact(_ => throw new Exception());
                     }
                     catch
                     {
@@ -86,17 +85,12 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
         }
 
-
         [Fact]
         public async Task ShouldRenderContextThatIndicatesNestingWhenRunningContinuation()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
             // This execute as a top-level transaction, saving the context as
             // a thread local.
-            var t = transactor.TransactAsync(async db =>
+            var t = _transactor.TransactAsync(async db =>
             {
                 // Yield to force continuation to be scheduled and
                 // hence assure we test actual asynchronous execution.
@@ -104,7 +98,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
                 // Inner transactor should find original context when
                 // back on original thread.
-                return transactor.Transact(db => db.IsNested());
+                return _transactor.Transact(db => db.IsNested());
             });
 
             var result = await t;
@@ -114,10 +108,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public async Task NestedTransactAsyncFailingActionRenderFaultyTask()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
             Action<IDatabaseContext> action = db =>
             {
                 if (db.IsNested())
@@ -126,7 +116,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 }
             };
 
-            var t = transactor.TransactAsync(db => transactor.TransactAsync(action));
+            var t = _transactor.TransactAsync(db => _transactor.TransactAsync(action));
 
             var e = await Assert.ThrowsAsync<Exception>(() => t);
             Assert.Equal("Foo", e.Message);
@@ -135,10 +125,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public async Task NestedTransactAsyncFailingFuncRenderFaultyTask()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
             Func<IDatabaseContext, bool> func = db =>
             {
                 if (db.IsNested())
@@ -149,7 +135,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 return false;
             };
 
-            var t = transactor.TransactAsync(db => transactor.TransactAsync(func));
+            var t = _transactor.TransactAsync(db => _transactor.TransactAsync(func));
 
             var e = await Assert.ThrowsAsync<Exception>(() => t);
             Assert.Equal("Foo", e.Message);
@@ -158,15 +144,11 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void NestedTransactRestartsParentReadOnlyTransaction()
         {
-            var transactor = CreateServices(
-                s => s.Decorate<ITransactor, NestedTransactor>())
-                .GetRequiredService<ITransactor>();
-
-            transactor.Transact(odb =>
+            _transactor.Transact(odb =>
             {
                 Person p = null;
 
-                transactor.Transact(idb =>
+                _transactor.Transact(idb =>
                 {
                     p = idb.Insert<Person>();
                 });
@@ -175,20 +157,51 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 Assert.NotEqual(0UL, odb.GetOid(p));
                 Assert.Null(p.Name);
 
-                transactor.Transact(idb =>
+                _transactor.Transact(idb =>
                 {
                     p.Name = nameof(NestedTransactRestartsParentReadOnlyTransaction);
                 });
 
                 Assert.Equal(nameof(NestedTransactRestartsParentReadOnlyTransaction), p.Name);
 
-                transactor.Transact(idb =>
+                _transactor.Transact(idb =>
                 {
                     idb.Delete(p);
                 });
 
                 Assert.Throws<DatabaseException>(() => Assert.NotNull(p.Name));
             }, new TransactOptions(TransactionFlags.ReadOnly));
+        }
+
+        private void AllowNestedTransactionImpl()
+        {
+            _transactor.Transact(db =>
+            {
+                _transactor.Transact(db => { });
+            });
+        }
+
+        private void ShouldRenderContextThatIndicatesNestingImpl()
+        {
+            var nested = _transactor.Transact(db =>
+            {
+                return _transactor.Transact(db => db.IsNested());
+            });
+
+            Assert.True(nested);
+        }
+
+        private void ShouldHaveOuterChangesVisibleInNestedTransactionImpl()
+        {
+            var result = _transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                var id = db.GetOid(p);
+
+                return _transactor.Transact(db => db.Get<Person>(id) != null);
+            });
+
+            Assert.True(result);
         }
     }
 }

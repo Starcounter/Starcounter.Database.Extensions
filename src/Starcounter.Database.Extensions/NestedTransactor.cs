@@ -22,7 +22,7 @@ namespace Starcounter.Database.Extensions
 
             public Exception InnerException;
 
-            public NestingContext(IDatabaseContext context) 
+            public NestingContext(IDatabaseContext context)
                 => DatabaseContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -39,16 +39,10 @@ namespace Starcounter.Database.Extensions
         {
             IDatabaseContext nested = _current.Value?.DatabaseContext;
 
-            if (Data.Transaction.Current != null && (Data.Transaction.Current.Flags & TransactionFlags.ReadOnly) != 0)
-            {
-                base.Transact(action, options);
-                Data.Transaction.Current.Restart();
-                return;
-            }
-
             if (nested == null)
             {
                 base.Transact(action, options);
+                RestartIfWithinReadOnlyTransaction();
                 return;
             }
 
@@ -72,7 +66,9 @@ namespace Starcounter.Database.Extensions
 
             if (nested == null)
             {
-                return base.Transact(function, options);
+                var r = base.Transact(function, options);
+                RestartIfWithinReadOnlyTransaction(); ;
+                return r;
             }
 
             var context = new NestedTransactionContext(nested);
@@ -97,6 +93,7 @@ namespace Starcounter.Database.Extensions
             if (nested == null)
             {
                 await base.TransactAsync(action, options);
+                RestartIfWithinReadOnlyTransaction();
                 return;
             }
 
@@ -120,7 +117,9 @@ namespace Starcounter.Database.Extensions
 
             if (nested == null)
             {
-                return await base.TransactAsync(function, options);
+                var r = await base.TransactAsync(function, options);
+                RestartIfWithinReadOnlyTransaction();
+                return r;
             }
 
             var context = new NestedTransactionContext(nested);
@@ -145,21 +144,21 @@ namespace Starcounter.Database.Extensions
             if (nested == null)
             {
                 await base.TransactAsync(function, options);
+                RestartIfWithinReadOnlyTransaction();
+                return;
             }
-            else
-            {
-                var context = new NestedTransactionContext(nested);
 
-                try
-                {
-                    await function(context);
-                    FailOuterIfInnerFailed();
-                }
-                catch (Exception ex)
-                {
-                    CaptureException(ex);
-                    throw;
-                }
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                await function(context);
+                FailOuterIfInnerFailed();
+            }
+            catch (Exception ex)
+            {
+                CaptureException(ex);
+                throw;
             }
         }
 
@@ -169,23 +168,23 @@ namespace Starcounter.Database.Extensions
 
             if (nested == null)
             {
-                return await base.TransactAsync(function, options);
+                var r = await base.TransactAsync(function, options);
+                RestartIfWithinReadOnlyTransaction();
+                return r;
             }
-            else
-            {
-                var context = new NestedTransactionContext(nested);
 
-                try
-                {
-                    T t = await function(context);
-                    FailOuterIfInnerFailed();
-                    return t;
-                }
-                catch (Exception ex)
-                {
-                    CaptureException(ex);
-                    throw;
-                }
+            var context = new NestedTransactionContext(nested);
+
+            try
+            {
+                T t = await function(context);
+                FailOuterIfInnerFailed();
+                return t;
+            }
+            catch (Exception ex)
+            {
+                CaptureException(ex);
+                throw;
             }
         }
 
@@ -195,7 +194,9 @@ namespace Starcounter.Database.Extensions
 
             if (nested == null)
             {
-                return base.TryTransact(action, options);
+                var r = base.TryTransact(action, options);
+                RestartIfWithinReadOnlyTransaction();
+                return r;
             }
 
             var context = new NestedTransactionContext(nested);
@@ -215,7 +216,11 @@ namespace Starcounter.Database.Extensions
 
         protected override IDatabaseContext EnterContext(IDatabaseContext db)
         {
-            _current.Value = new NestingContext(db);
+            if (!IsWithinReadOnlyTransaction())
+            {
+                _current.Value = new NestingContext(db);
+            }
+
             return db;
         }
 
@@ -236,11 +241,24 @@ namespace Starcounter.Database.Extensions
 
         protected void CaptureException(Exception ex) => _current.Value.InnerException = ex;
 
-        void FailOuterIfInnerFailed()
+        private void FailOuterIfInnerFailed()
         {
             if (_current.Value?.InnerException != null)
             {
                 throw new TransactionAbortedException("Nested transaction failed", _current.Value.InnerException);
+            }
+        }
+
+        private bool IsWithinReadOnlyTransaction()
+        {
+            return Data.Transaction.Current != null && (Data.Transaction.Current.Flags & TransactionFlags.ReadOnly) == TransactionFlags.ReadOnly;
+        }
+
+        private void RestartIfWithinReadOnlyTransaction()
+        {
+            if (IsWithinReadOnlyTransaction())
+            {
+                Data.Transaction.Current.Restart();
             }
         }
     }
