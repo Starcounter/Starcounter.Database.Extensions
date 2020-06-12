@@ -159,7 +159,7 @@ namespace Starcounter.Database.Extensions
 
         /// <summary>
         /// Invoked right after a transaction commit and outside of its scope.
-        /// This method is not invoked if a transaction failed.
+        /// This method is not invoked if the transaction fails.
         /// </summary>
         protected virtual void LeftContext() { }
     }
