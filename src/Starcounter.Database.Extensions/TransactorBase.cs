@@ -13,25 +13,55 @@ namespace Starcounter.Database.Extensions
             => _inner = innerTransactor ?? throw new ArgumentNullException(nameof(innerTransactor));
 
         public virtual void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.Transact(db => ExecuteCallback(db, action), options);
+        {
+            _inner.Transact(db => ExecuteCallback(db, action), options);
+            LeftContext();
+        }
 
         public virtual T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
-            => _inner.Transact(db => ExecuteCallback(db, function), options);
+        { 
+            var r = _inner.Transact(db => ExecuteCallback(db, function), options);
+            LeftContext();
+            return r;
+        }
 
-        public virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, action), options);
+        public async virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
+        { 
+            await _inner.TransactAsync(db => ExecuteCallback(db, action), options);
+            LeftContext();
+        }
 
-        public virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
+        {
+            await _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+            LeftContext();
+        }
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        {
+            var r = await _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+            LeftContext();
+            return r;
+        }
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
+        { 
+            var r = await _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+            LeftContext();
+            return r;
+        }
 
         public virtual bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.TryTransact(db => ExecuteCallback(db, action), options);
+        { 
+            var r = _inner.TryTransact(db => ExecuteCallback(db, action), options);
+            
+            if (r)
+            {
+                LeftContext();
+            }
+
+            return r;
+        }
 
         protected virtual void ExecuteCallback(IDatabaseContext db, Action<IDatabaseContext> action)
         {
@@ -126,5 +156,11 @@ namespace Starcounter.Database.Extensions
         /// <param name="exceptionThrown">True if an exception was thrown when invoking the
         /// delegate; false otherwise.</param>
         protected virtual void LeaveContext(IDatabaseContext db, bool exceptionThrown) { }
+
+        /// <summary>
+        /// Invoked right after a transaction commit and outside of its scope.
+        /// This method is not invoked if a transaction failed.
+        /// </summary>
+        protected virtual void LeftContext() { }
     }
 }
