@@ -38,7 +38,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             });
 
             // Assert
-            var after = transactor.Transact(db => hooked.Contains(before.Id));
+            var after = hooked.Contains(before.Id);
             Assert.False(before.WasHooked);
             Assert.True(after);
         }
