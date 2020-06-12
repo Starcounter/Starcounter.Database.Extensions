@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Starcounter.Database.ChangeTracking;
 
@@ -43,7 +44,7 @@ namespace Starcounter.Database.Extensions
             {
                 if (options.Delegates.TryGetValue(change.Key, out Action<Change> action))
                 {
-                    action(change.Value);
+                    Task.Run(() => action(change.Value));
                 }
             }
         }
