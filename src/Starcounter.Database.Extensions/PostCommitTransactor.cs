@@ -34,13 +34,18 @@ namespace Starcounter.Database.Extensions
 
         protected override void LeftContext()
         {
-            ExecutePostCommitHooks(_hookOptions);
+            var changes = _lastChanges.Value;
             _lastChanges.Value = null;
+
+            Task.Run(() =>
+            {
+                ExecutePostCommitHooks(changes, _hookOptions);
+            });
         }
 
-        protected virtual void ExecutePostCommitHooks(PostCommitOptions options)
+        protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes, PostCommitOptions options)
         {
-            foreach (var change in _lastChanges.Value)
+            foreach (var change in changes)
             {
                 if (options.Delegates.TryGetValue(change.Key, out Action<Change> action))
                 {
