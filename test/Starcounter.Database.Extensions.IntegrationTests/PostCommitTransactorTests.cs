@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Moq.Protected;
 using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
@@ -48,34 +50,24 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.True(after);
         }
 
-        class CountingTaskScheduler : TaskScheduler 
-        {
-            public int TaskCount { get; set; }
-
-            protected override void QueueTask(Task task) 
-            {
-                TaskCount++;
-                TryExecuteTask(task);
-            }
-
-            protected override IEnumerable<Task> GetScheduledTasks() => null;
-
-            protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) => true;
-        }
-
         [Fact]
         public void DontInvokeHooksWhenTransactRaiseException()
         {
-            var scheduler = new CountingTaskScheduler();
+            var count = 0;
+            var schedulerMoch = new Mock<TaskScheduler>();
+            schedulerMoch
+                .Protected()
+                .Setup("QueueTask", ItExpr.IsAny<Task>())
+                .Callback(() => count++);
 
             // Given
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PostCommitOptions>(o => 
-                    { 
-                        o.TaskScheduler = scheduler;
-                        o.Hook<Person>(_ => {});
+                    .Configure<PostCommitOptions>(o =>
+                    {
+                        o.TaskScheduler = schedulerMoch.Object;
+                        o.Hook<Person>(_ => { });
                     })
                     .Decorate<ITransactor, PostCommitTransactor>()
             );
@@ -91,9 +83,10 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             }));
 
             // Assert
+            Assert.Equal(0, count);
+
             var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
             Assert.False(existInDatabase);
-            Assert.Equal(0, scheduler.TaskCount);
         }
     }
 }
