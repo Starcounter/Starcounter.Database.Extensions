@@ -54,16 +54,20 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected virtual void RunTask(Action action)
+        protected virtual Task RunTask(Action action)
         {
             if (_hookOptions.TaskScheduler == null)
             {
-                Task.Run(action);
+                return Task.Run(action);
             }
-            else
-            {
-                Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.DenyChildAttach, _hookOptions.TaskScheduler);
-            }
+            
+            return Task.Factory.StartNew
+            (
+                action, 
+                CancellationToken.None, 
+                TaskCreationOptions.DenyChildAttach, 
+                _hookOptions.TaskScheduler
+            );
         }
     }
 }
