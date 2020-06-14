@@ -60,12 +60,12 @@ namespace Starcounter.Database.Extensions
             {
                 return Task.Run(action);
             }
-            
+
             return Task.Factory.StartNew
             (
-                action, 
-                CancellationToken.None, 
-                TaskCreationOptions.DenyChildAttach, 
+                action,
+                CancellationToken.None,
+                TaskCreationOptions.DenyChildAttach,
                 _hookOptions.TaskScheduler
             );
         }
