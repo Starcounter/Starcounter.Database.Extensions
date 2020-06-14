@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -54,11 +55,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public void DontInvokeHooksWhenTransactRaiseException()
         {
             var count = 0;
-            var schedulerMoch = new Mock<TaskScheduler>();
-            schedulerMoch
-                .Protected()
-                .Setup("QueueTask", ItExpr.IsAny<Task>())
-                .Callback(() => count++);
 
             // Given
             var services = CreateServices
@@ -66,10 +62,20 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 serviceCollection => serviceCollection
                     .Configure<PostCommitOptions>(o =>
                     {
-                        o.TaskScheduler = schedulerMoch.Object;
                         o.Hook<Person>(_ => { });
                     })
-                    .Decorate<ITransactor, PostCommitTransactor>()
+                    .Decorate<ITransactor>((transactor, services) =>
+                    {
+                        var options = services.GetService<IOptions<PostCommitOptions>>();
+                        var decoratorMoch = new Mock<PostCommitTransactor>(transactor, options);
+
+                        decoratorMoch.CallBase = true;
+                        decoratorMoch.Protected()
+                            .Setup("LeftContext")
+                            .Callback(() => count++);
+
+                        return decoratorMoch.Object;
+                    })
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
