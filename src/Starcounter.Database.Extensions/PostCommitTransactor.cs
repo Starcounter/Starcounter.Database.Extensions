@@ -37,7 +37,7 @@ namespace Starcounter.Database.Extensions
             var changes = _lastChanges.Value;
             _lastChanges.Value = null;
 
-            Task.Run(() =>
+            RunTask(() =>
             {
                 ExecutePostCommitHooks(changes, _hookOptions);
             });
@@ -49,9 +49,11 @@ namespace Starcounter.Database.Extensions
             {
                 if (options.Delegates.TryGetValue(change.Key, out Action<Change> action))
                 {
-                    Task.Run(() => action(change.Value));
+                    RunTask(() => action(change.Value));
                 }
             }
         }
+
+        protected virtual void RunTask(Action action) => Task.Run(action);
     }
 }
