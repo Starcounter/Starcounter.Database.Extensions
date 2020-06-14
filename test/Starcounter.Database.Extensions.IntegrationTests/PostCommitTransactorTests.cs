@@ -48,19 +48,35 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             Assert.True(after);
         }
 
+        class CountingTaskScheduler : TaskScheduler 
+        {
+            public int TaskCount { get; set; }
+
+            protected override void QueueTask(Task task) 
+            {
+                TaskCount++;
+                TryExecuteTask(task);
+            }
+
+            protected override IEnumerable<Task> GetScheduledTasks() => null;
+
+            protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) => true;
+        }
+
         [Fact]
         public void DontInvokeHooksWhenTransactRaiseException()
         {
+            var scheduler = new CountingTaskScheduler();
+
             // Given
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PostCommitOptions>(o => o.Hook<Person>(change =>
-                    {
-                        // The hook shall not be called if transaction was aborted.
-                        // Post commit hooks are executed asynchronously, thus throwing exception here does not fail the test.
-                        Environment.Exit(-1);
-                    }))
+                    .Configure<PostCommitOptions>(o => 
+                    { 
+                        o.TaskScheduler = scheduler;
+                        o.Hook<Person>(_ => {});
+                    })
                     .Decorate<ITransactor, PostCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
@@ -77,6 +93,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             // Assert
             var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
             Assert.False(existInDatabase);
+            Assert.Equal(0, scheduler.TaskCount);
         }
     }
 }
