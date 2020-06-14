@@ -10,8 +10,8 @@ namespace Starcounter.Database.Extensions
 {
     public class PostCommitTransactor : TransactorBase
     {
-        protected AsyncLocal<List<KeyValuePair<Type, Change>>> _lastChanges = new AsyncLocal<List<KeyValuePair<Type, Change>>>();
-        protected readonly PostCommitOptions _hookOptions;
+        readonly AsyncLocal<List<KeyValuePair<Type, Change>>> _lastChanges = new AsyncLocal<List<KeyValuePair<Type, Change>>>();
+        readonly PostCommitOptions _hookOptions;
 
         public PostCommitTransactor(ITransactor transactor, IOptions<PostCommitOptions> postCommitHookOptions)
             : base(transactor)
