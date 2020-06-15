@@ -84,9 +84,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             // Assert
             Assert.Equal(0, count);
-
-            var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
-            Assert.False(existInDatabase);
         }
     }
 }
