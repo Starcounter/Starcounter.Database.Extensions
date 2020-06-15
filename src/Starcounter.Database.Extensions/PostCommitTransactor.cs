@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Starcounter.Database.ChangeTracking;
 
@@ -45,11 +44,7 @@ namespace Starcounter.Database.Extensions
             }
 
             _lastChanges.Value = null;
-
-            RunTask(() =>
-            {
-                ExecutePostCommitHooks(changes, _hookOptions);
-            });
+            ExecutePostCommitHooks(changes, _hookOptions);
         }
 
         protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes, PostCommitOptions options)
@@ -58,25 +53,9 @@ namespace Starcounter.Database.Extensions
             {
                 if (options.Delegates.TryGetValue(change.Key, out Action<Change> action))
                 {
-                    RunTask(() => action(change.Value));
+                    action(change.Value);
                 }
             }
-        }
-
-        protected virtual Task RunTask(Action action)
-        {
-            if (_hookOptions.TaskScheduler == null)
-            {
-                return Task.Run(action);
-            }
-
-            return Task.Factory.StartNew
-            (
-                action,
-                CancellationToken.None,
-                TaskCreationOptions.DenyChildAttach,
-                _hookOptions.TaskScheduler
-            );
         }
     }
 }

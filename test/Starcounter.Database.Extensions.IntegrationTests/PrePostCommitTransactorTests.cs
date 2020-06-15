@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
@@ -20,7 +17,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         {
             var preHooked = new List<ulong>();
             var postHooked = new List<ulong>();
-            var tcs = new TaskCompletionSource<ulong>();
 
             // Given
             var services = CreateServices
@@ -33,7 +29,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     .Configure<PostCommitOptions>(o => o.Hook<Person>(change => 
                     {
                         postHooked.Add(change.Oid);
-                        tcs.SetResult(change.Oid);
                     }))
                     .Decorate<ITransactor, PreCommitTransactor>()
                     .Decorate<ITransactor, PostCommitTransactor>()
@@ -48,8 +43,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 return (preHooked.Contains(id), id);
             });
 
-            tcs.Task.Wait();
-
             // Assert
             Assert.Single(preHooked);
             Assert.Contains(before.Id, preHooked);
@@ -61,11 +54,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public void DontInvokeHooksWhenTransactRaiseException()
         {
             var count = 0;
-            var schedulerMoch = new Mock<TaskScheduler>();
-            schedulerMoch
-                .Protected()
-                .Setup("QueueTask", ItExpr.IsAny<Task>())
-                .Callback(() => count++);
 
             // Given
             var services = CreateServices
@@ -77,8 +65,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     }))
                     .Configure<PostCommitOptions>(o =>
                     {
-                        o.TaskScheduler = schedulerMoch.Object;
-                        o.Hook<Person>(_ => { });
+                        o.Hook<Person>(_ => count++);
                     })
                     .Decorate<ITransactor, PreCommitTransactor>()
                     .Decorate<ITransactor, PostCommitTransactor>()
