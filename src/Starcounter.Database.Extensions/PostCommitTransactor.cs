@@ -19,17 +19,20 @@ namespace Starcounter.Database.Extensions
 
         protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
         {
-            List<KeyValuePair<Type, Change>> changes = new List<KeyValuePair<Type, Change>>();
-
-            foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
+            if (!exceptionThrown)
             {
-                var proxy = db.Get<object>(change.Oid);
-                var realType = proxy.GetType().BaseType;
+                var changes = new List<KeyValuePair<Type, Change>>();
 
-                changes.Add(new KeyValuePair<Type, Change>(realType, change));
+                foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
+                {
+                    var proxy = db.Get<object>(change.Oid);
+                    var realType = proxy.GetType().BaseType;
+
+                    changes.Add(new KeyValuePair<Type, Change>(realType, change));
+                }
+
+                _lastChanges.Value = changes;
             }
-
-            _lastChanges.Value = changes;
         }
 
         protected override void LeftContext()
@@ -37,10 +40,13 @@ namespace Starcounter.Database.Extensions
             var changes = _lastChanges.Value;
             _lastChanges.Value = null;
 
-            RunTask(() =>
+            if (changes != null)
             {
-                ExecutePostCommitHooks(changes, _hookOptions);
-            });
+                RunTask(() =>
+                {
+                    ExecutePostCommitHooks(changes, _hookOptions);
+                });
+            }
         }
 
         protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes, PostCommitOptions options)
