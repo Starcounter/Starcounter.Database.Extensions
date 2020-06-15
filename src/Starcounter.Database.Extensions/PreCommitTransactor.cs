@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PreCommitTransactor : TransactorBase
+    public class PreCommitTransactor : TransactorBase<ITransactorContext>
     {
         readonly PreCommitOptions hookOptions;
 
@@ -13,7 +13,7 @@ namespace Starcounter.Database.Extensions
             : base(transactor)
             => hookOptions = preCommitHookOptions.Value;
 
-        protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
+        protected override void LeaveContext(ITransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             if (!exceptionThrown)
             {
