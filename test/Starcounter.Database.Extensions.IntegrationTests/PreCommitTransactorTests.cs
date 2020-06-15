@@ -13,7 +13,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public abstract class Person { }
 
         [Fact]
-        public void TriggerCallbackOnInsert()
+        public void TriggerHookOnInsert()
         {
             var hooked = new List<ulong>();
 

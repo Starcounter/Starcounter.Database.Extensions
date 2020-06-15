@@ -16,7 +16,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         public abstract class Person { }
 
         [Fact]
-        public void TriggerCallbacksOnInsert()
+        public void TriggerHooksOnInsert()
         {
             var preHooked = new List<ulong>();
             var postHooked = new List<ulong>();
