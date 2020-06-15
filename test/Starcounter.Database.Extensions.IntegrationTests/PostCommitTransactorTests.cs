@@ -85,5 +85,39 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             // Assert
             Assert.Equal(0, count);
         }
+
+        [Fact]
+        public void DontInvokeHooksWhenTransactHasNoChanges()
+        {
+            var count = 0;
+            var schedulerMoch = new Mock<TaskScheduler>();
+            schedulerMoch
+                .Protected()
+                .Setup("QueueTask", ItExpr.IsAny<Task>())
+                .Callback(() => count++);
+
+            // Given
+            var services = CreateServices
+            (
+                serviceCollection => serviceCollection
+                    .Configure<PostCommitOptions>(o =>
+                    {
+                        o.TaskScheduler = schedulerMoch.Object;
+                        o.Hook<Person>(_ => { });
+                    })
+                    .Decorate<ITransactor, PostCommitTransactor>()
+            );
+            var transactor = services.GetRequiredService<ITransactor>();
+
+            // Act
+            transactor.Transact(db =>
+            {
+                var p = db.Insert<Person>();
+                db.Delete(p);
+            });
+
+            // Assert
+            Assert.Equal(0, count);
+        }
     }
 }

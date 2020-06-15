@@ -29,12 +29,21 @@ namespace Starcounter.Database.Extensions
                 changes.Add(new KeyValuePair<Type, Change>(realType, change));
             }
 
-            _lastChanges.Value = changes;
+            if (changes.Any())
+            {
+                _lastChanges.Value = changes;
+            }
         }
 
         protected override void LeftContext()
         {
             var changes = _lastChanges.Value;
+
+            if (changes == null)
+            {
+                return;
+            }
+
             _lastChanges.Value = null;
 
             RunTask(() =>
