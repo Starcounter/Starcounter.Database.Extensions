@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PreCommitTransactor : TransactorBase<object>
+    public class PreCommitTransactor : OnCommitTransactor<object>
     {
         readonly PreCommitOptions _hookOptions;
 
@@ -23,14 +23,9 @@ namespace Starcounter.Database.Extensions
 
         protected virtual void ExecutePreCommitHooks(IDatabaseContext db)
         {
-            foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
+            foreach ((Change Change, Action<IDatabaseContext, Change> Action) item in SelectHooks(db, _hookOptions.Delegates))
             {
-                var realType = db.GetRealType(change.Oid);
-
-                if (_hookOptions.Delegates.TryGetValue(realType, out Action<IDatabaseContext, Change> action))
-                {
-                    action(db, change);
-                }
+                item.Action(db, item.Change);
             }
         }
     }

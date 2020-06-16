@@ -6,6 +6,6 @@ namespace Starcounter.Database.Extensions
 {
     public class PostCommitTransactorContext
     {
-        public IEnumerable<(Type Type, Change Change)> Changes { get; set; }
+        public IEnumerable<(Change Change, Action<Change> Action)> Hooks { get; set; }
     }
 }

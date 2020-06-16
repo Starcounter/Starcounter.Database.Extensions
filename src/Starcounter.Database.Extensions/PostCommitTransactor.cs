@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Options;
-using Starcounter.Database.ChangeTracking;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PostCommitTransactor : TransactorBase<PostCommitTransactorContext>
+    public class PostCommitTransactor : OnCommitTransactor<PostCommitTransactorContext>
     {
         readonly PostCommitOptions _hookOptions;
 
@@ -16,37 +15,17 @@ namespace Starcounter.Database.Extensions
 
         protected override void LeaveDatabaseContext(PostCommitTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
-            var changes = new List<(Type, Change)>();
-
-            foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
-            {
-                var realType = db.GetRealType(change.Oid);
-                changes.Add((realType, change));
-            }
-
-            transactorContext.Changes = changes;
+            // The IEnumerable has to be materialized here, because iterating over the transactions changes require database access.
+            transactorContext.Hooks = SelectHooks(db, _hookOptions.Delegates).ToList();
         }
 
         protected override PostCommitTransactorContext EnterTransactorContext() => new PostCommitTransactorContext();
 
         protected override void LeaveTransactorContext(PostCommitTransactorContext transactorContext)
         {
-            if (transactorContext.Changes?.Any() != true)
+            foreach (var hook in transactorContext.Hooks)
             {
-                return;
-            }
-
-            ExecutePostCommitHooks(transactorContext.Changes);
-        }
-
-        protected virtual void ExecutePostCommitHooks(IEnumerable<(Type Type, Change Change)> changes)
-        {
-            foreach (var change in changes)
-            {
-                if (_hookOptions.Delegates.TryGetValue(change.Type, out Action<Change> action))
-                {
-                    action(change.Change);
-                }
+                hook.Action(hook.Change);
             }
         }
     }
