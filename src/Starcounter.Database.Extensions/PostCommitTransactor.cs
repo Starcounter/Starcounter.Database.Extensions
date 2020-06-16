@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PostCommitTransactor : OnCommitTransactor<PostCommitTransactorContext>
+    public class PostCommitTransactor : TransactorBase<PostCommitTransactorContext>
     {
         readonly PostCommitOptions _hookOptions;
 
@@ -16,7 +16,7 @@ namespace Starcounter.Database.Extensions
         protected override void LeaveDatabaseContext(PostCommitTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             // The IEnumerable has to be materialized here, because iterating over the transactions changes require database access.
-            transactorContext.Hooks = SelectHooks(db, _hookOptions.Delegates).ToList();
+            transactorContext.Hooks = TransactionChangesFilter.SelectHooks(db, _hookOptions.Delegates).ToList();
         }
 
         protected override PostCommitTransactorContext EnterTransactorContext() => new PostCommitTransactorContext();

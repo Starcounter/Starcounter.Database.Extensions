@@ -1,17 +1,12 @@
-﻿using Starcounter.Database.ChangeTracking;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Starcounter.Database.ChangeTracking;
 
 namespace Starcounter.Database.Extensions
 {
-    public abstract class OnCommitTransactor<TTransactorContext> : TransactorBase<TTransactorContext>
-        where TTransactorContext : class
+    internal static class TransactionChangesFilter
     {
-        protected OnCommitTransactor(ITransactor innerTransactor) : base(innerTransactor)
-        { 
-        }
-
         /// <summary>
         /// Filters <see cref="IChangeTracker.Changes"/> by object type using specified types dictionary.
         /// Entires with <see cref="Change.Type"/> equal to <see cref="ChangeType.Delete"/> are ignored.
@@ -20,7 +15,7 @@ namespace Starcounter.Database.Extensions
         /// <param name="db"></param>
         /// <param name="types"></param>
         /// <returns></returns>
-        protected virtual IEnumerable<(Change, TValue)> SelectHooks<TValue>(IDatabaseContext db, IDictionary<Type, TValue> types)
+        internal static IEnumerable<(Change, TValue)> SelectHooks<TValue>(IDatabaseContext db, IDictionary<Type, TValue> types)
         {
             foreach (var change in db.ChangeTracker.Changes)
             {

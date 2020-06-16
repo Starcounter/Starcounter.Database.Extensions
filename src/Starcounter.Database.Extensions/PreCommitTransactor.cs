@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PreCommitTransactor : OnCommitTransactor<object>
+    public class PreCommitTransactor : TransactorBase<object>
     {
         readonly PreCommitOptions _hookOptions;
 
@@ -23,7 +23,7 @@ namespace Starcounter.Database.Extensions
 
         protected virtual void ExecutePreCommitHooks(IDatabaseContext db)
         {
-            foreach ((Change Change, Action<IDatabaseContext, Change> Action) item in SelectHooks(db, _hookOptions.Delegates))
+            foreach ((Change Change, Action<IDatabaseContext, Change> Action) item in TransactionChangesFilter.SelectHooks(db, _hookOptions.Delegates))
             {
                 item.Action(db, item.Change);
             }
