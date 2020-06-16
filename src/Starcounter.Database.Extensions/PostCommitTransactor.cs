@@ -20,8 +20,7 @@ namespace Starcounter.Database.Extensions
 
             foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
             {
-                var proxy = db.Get<object>(change.Oid);
-                var realType = proxy.GetType().BaseType;
+                var realType = db.GetRealType(change.Oid);
 
                 transactorContext.Changes.Add(new KeyValuePair<Type, Change>(realType, change));
             }
@@ -34,14 +33,14 @@ namespace Starcounter.Database.Extensions
                 return;
             }
 
-            ExecutePostCommitHooks(transactorContext.Changes, _hookOptions);
+            ExecutePostCommitHooks(transactorContext.Changes);
         }
 
-        protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes, PostCommitOptions options)
+        protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes)
         {
             foreach (var change in changes)
             {
-                if (options.Delegates.TryGetValue(change.Key, out Action<Change> action))
+                if (_hookOptions.Delegates.TryGetValue(change.Key, out Action<Change> action))
                 {
                     action(change.Value);
                 }

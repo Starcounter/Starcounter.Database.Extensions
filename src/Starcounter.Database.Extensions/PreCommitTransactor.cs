@@ -7,28 +7,27 @@ namespace Starcounter.Database.Extensions
 {
     public class PreCommitTransactor : TransactorBase<ITransactorContext>
     {
-        readonly PreCommitOptions hookOptions;
+        readonly PreCommitOptions _hookOptions;
 
         public PreCommitTransactor(ITransactor transactor, IOptions<PreCommitOptions> preCommitHookOptions)
             : base(transactor)
-            => hookOptions = preCommitHookOptions.Value;
+            => _hookOptions = preCommitHookOptions.Value;
 
         protected override void LeaveContext(ITransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             if (!exceptionThrown)
             {
-                ExecutePreCommitHooks(db, hookOptions);
+                ExecutePreCommitHooks(db);
             }
         }
 
-        protected virtual void ExecutePreCommitHooks(IDatabaseContext db, PreCommitOptions options)
+        protected virtual void ExecutePreCommitHooks(IDatabaseContext db)
         {
             foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
             {
-                var proxy = db.Get<object>(change.Oid);
-                var realType = proxy.GetType().BaseType;
+                var realType = db.GetRealType(change.Oid);
 
-                if (options.Delegates.TryGetValue(realType, out Action<IDatabaseContext, Change> action))
+                if (_hookOptions.Delegates.TryGetValue(realType, out Action<IDatabaseContext, Change> action))
                 {
                     action(db, change);
                 }
