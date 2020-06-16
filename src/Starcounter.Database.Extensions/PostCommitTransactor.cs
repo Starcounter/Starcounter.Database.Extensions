@@ -16,14 +16,15 @@ namespace Starcounter.Database.Extensions
 
         protected override void LeaveDatabaseContext(PostCommitTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
-            transactorContext.Changes = new List<KeyValuePair<Type, Change>>();
+            var changes = new List<(Type, Change)>();
 
             foreach (var change in db.ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
             {
                 var realType = db.GetRealType(change.Oid);
-
-                transactorContext.Changes.Add(new KeyValuePair<Type, Change>(realType, change));
+                changes.Add((realType, change));
             }
+
+            transactorContext.Changes = changes;
         }
 
         protected override PostCommitTransactorContext EnterTransactorContext() => new PostCommitTransactorContext();
@@ -38,13 +39,13 @@ namespace Starcounter.Database.Extensions
             ExecutePostCommitHooks(transactorContext.Changes);
         }
 
-        protected virtual void ExecutePostCommitHooks(List<KeyValuePair<Type, Change>> changes)
+        protected virtual void ExecutePostCommitHooks(IEnumerable<(Type Type, Change Change)> changes)
         {
             foreach (var change in changes)
             {
-                if (_hookOptions.Delegates.TryGetValue(change.Key, out Action<Change> action))
+                if (_hookOptions.Delegates.TryGetValue(change.Type, out Action<Change> action))
                 {
-                    action(change.Value);
+                    action(change.Change);
                 }
             }
         }
