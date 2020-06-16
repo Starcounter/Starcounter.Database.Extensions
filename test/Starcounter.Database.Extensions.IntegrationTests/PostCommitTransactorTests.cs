@@ -72,33 +72,5 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             // Assert
             Assert.Equal(0, count);
         }
-
-        [Fact]
-        public void DontInvokeHooksWhenTransactHasNoChanges()
-        {
-            var count = 0;
-
-            // Given
-            var services = CreateServices
-            (
-                serviceCollection => serviceCollection
-                    .Configure<PostCommitOptions>(o =>
-                    {
-                        o.Hook<Person>(_ => count++);
-                    })
-                    .Decorate<ITransactor, PostCommitTransactor>()
-            );
-            var transactor = services.GetRequiredService<ITransactor>();
-
-            // Act
-            transactor.Transact(db =>
-            {
-                var p = db.Insert<Person>();
-                db.Delete(p);
-            });
-
-            // Assert
-            Assert.Equal(0, count);
-        }
     }
 }
