@@ -5,9 +5,9 @@ using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
 {
-    public sealed class PreCommitTransactorTests : ServicedTests
+    public sealed class PostCommitTransactorTests : ServicedTests
     {
-        public PreCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+        public PostCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         [Database]
         public abstract class Person { }
@@ -21,11 +21,11 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
+                    .Configure<PostCommitOptions>(o => o.Hook<Person>((change) =>
                     {
                         hooked.Add(change.Oid);
                     }))
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, PostCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
@@ -46,17 +46,17 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Fact]
         public void DontInvokeHooksWhenTransactRaiseException()
         {
-            var hooked = new List<ulong>();
+            var count = 0;
 
             // Given
             var services = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
+                    .Configure<PostCommitOptions>(o =>
                     {
-                        hooked.Add(change.Oid);
-                    }))
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                        o.Hook<Person>(_ => count++);
+                    })
+                    .Decorate<ITransactor, PostCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
@@ -70,9 +70,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             }));
 
             // Assert
-            var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
-            Assert.False(existInDatabase);
-            Assert.Empty(hooked);
+            Assert.Equal(0, count);
         }
     }
 }

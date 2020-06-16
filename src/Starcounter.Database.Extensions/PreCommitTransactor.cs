@@ -5,40 +5,27 @@ using Microsoft.Extensions.Options;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PreCommitTransactor : TransactorBase
+    public class PreCommitTransactor : TransactorBase<object>
     {
-        class PreCommitContext : ContextBase
-        {
-            public PreCommitContext(IDatabaseContext context) : base(context) { }
-
-            public void ExecutePreCommitHooks(PreCommitOptions options)
-            {
-                foreach (var change in ChangeTracker.Changes.Where(c => c.Type != ChangeType.Delete))
-                {
-                    var proxy = Get<object>(change.Oid);
-                    var realType = proxy.GetType().BaseType;
-
-                    if (options.Delegates.TryGetValue(realType, out Action<IDatabaseContext, Change> action))
-                    {
-                        action(this, change);
-                    }
-                }
-            }
-        }
-
-        readonly PreCommitOptions hookOptions;
+        readonly PreCommitOptions _hookOptions;
 
         public PreCommitTransactor(ITransactor transactor, IOptions<PreCommitOptions> preCommitHookOptions)
             : base(transactor)
-            => hookOptions = preCommitHookOptions.Value;
+            => _hookOptions = preCommitHookOptions.Value;
 
-        protected override IDatabaseContext EnterContext(IDatabaseContext db) => new PreCommitContext(db);
-
-        protected override void LeaveContext(IDatabaseContext db, bool exceptionThrown)
+        protected override void LeaveDatabaseContext(object transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             if (!exceptionThrown)
             {
-                ((PreCommitContext)db).ExecutePreCommitHooks(hookOptions);
+                ExecutePreCommitHooks(db);
+            }
+        }
+
+        protected virtual void ExecutePreCommitHooks(IDatabaseContext db)
+        {
+            foreach ((Change Change, Action<IDatabaseContext, Change> Action) item in TransactionChangesFilter.SelectHooks(db, _hookOptions.Delegates))
+            {
+                item.Action(db, item.Change);
             }
         }
     }

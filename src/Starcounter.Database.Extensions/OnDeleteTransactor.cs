@@ -1,7 +1,7 @@
 
 namespace Starcounter.Database.Extensions
 {
-    public class OnDeleteTransactor : TransactorBase
+    public class OnDeleteTransactor : TransactorBase<object>
     {
         class OnDeleteContext : ContextBase
         {
@@ -20,6 +20,6 @@ namespace Starcounter.Database.Extensions
 
         public OnDeleteTransactor(ITransactor transactor) : base(transactor) { }
 
-        protected override IDatabaseContext EnterContext(IDatabaseContext db) => new OnDeleteContext(db);
+        protected override IDatabaseContext EnterDatabaseContext(object transactorContext, IDatabaseContext db) => new OnDeleteContext(db);
     }
 }

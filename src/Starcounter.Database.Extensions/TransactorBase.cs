@@ -3,7 +3,8 @@ using System.Threading.Tasks;
 
 namespace Starcounter.Database.Extensions
 {
-    public abstract class TransactorBase : ITransactor
+    public abstract class TransactorBase<TTransactorContext> : ITransactor
+        where TTransactorContext : class
     {
         readonly ITransactor _inner;
 
@@ -13,33 +14,70 @@ namespace Starcounter.Database.Extensions
             => _inner = innerTransactor ?? throw new ArgumentNullException(nameof(innerTransactor));
 
         public virtual void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.Transact(db => ExecuteCallback(db, action), options);
+        {
+            var context = EnterTransactorContext();
+            _inner.Transact(db => ExecuteCallback(context, db, action), options);
+            LeaveTransactorContext(context);
+        }
 
         public virtual T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
-            => _inner.Transact(db => ExecuteCallback(db, function), options);
+        {
+            var context = EnterTransactorContext();
+            var r = _inner.Transact(db => ExecuteCallback(context, db, function), options);
+            LeaveTransactorContext(context);
+            return r;
+        }
 
-        public virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, action), options);
+        public async virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
+        {
+            var context = EnterTransactorContext();
+            await _inner.TransactAsync(db => ExecuteCallback(context, db, action), options);
+            LeaveTransactorContext(context);
+        }
 
-        public virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
+        {
+            var context = EnterTransactorContext();
+            await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
+            LeaveTransactorContext(context);
+        }
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
+        {
+            var context = EnterTransactorContext();
+            var r = await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
+            LeaveTransactorContext(context);
+            return r;
+        }
 
-        public virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
-            => _inner.TransactAsync(db => ExecuteCallback(db, function), options);
+        public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
+        {
+            var context = EnterTransactorContext();
+            var r = await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
+            LeaveTransactorContext(context);
+            return r;
+        }
 
         public virtual bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
-            => _inner.TryTransact(db => ExecuteCallback(db, action), options);
-
-        protected virtual void ExecuteCallback(IDatabaseContext db, Action<IDatabaseContext> action)
         {
-            var context = EnterContext(db);
+            var context = EnterTransactorContext();
+            var r = _inner.TryTransact(db => ExecuteCallback(context, db, action), options);
+            
+            if (r)
+            {
+                LeaveTransactorContext(context);
+            }
+
+            return r;
+        }
+
+        protected virtual void ExecuteCallback(TTransactorContext transactorContext, IDatabaseContext db, Action<IDatabaseContext> action)
+        {
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exceptionThrown = false;
             try
             {
-                action(context);
+                action(dbContext);
             }
             catch
             {
@@ -48,17 +86,17 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(context, exceptionThrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exceptionThrown);
             }
         }
 
-        protected virtual T ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, T> function)
+        protected virtual T ExecuteCallback<T>(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, T> function)
         {
-            var context = EnterContext(db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
-                return function(context);
+                return function(dbContext);
             }
             catch
             {
@@ -67,17 +105,17 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(context, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
-        protected virtual async Task ExecuteCallback(IDatabaseContext db, Func<IDatabaseContext, Task> function)
+        protected virtual async Task ExecuteCallback(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, Task> function)
         {
-            var context = EnterContext(db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
-                await function(context);
+                await function(dbContext);
             }
             catch
             {
@@ -86,17 +124,17 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(context, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
-        protected virtual async Task<T> ExecuteCallback<T>(IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
+        protected virtual async Task<T> ExecuteCallback<T>(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
         {
-            var context = EnterContext(db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
-                return await function(context);
+                return await function(dbContext);
             }
             catch
             {
@@ -105,7 +143,7 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(context, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
@@ -116,7 +154,7 @@ namespace Starcounter.Database.Extensions
         /// </summary>
         /// <param name="db">The default database context</param>
         /// <returns>A database context that will be passed to the delegate.</returns>
-        protected virtual IDatabaseContext EnterContext(IDatabaseContext db) => db;
+        protected virtual IDatabaseContext EnterDatabaseContext(TTransactorContext transactorContext, IDatabaseContext db) => db;
 
         /// <summary>
         /// Invoked right after the user delegate has been executed, but when we are still
@@ -125,6 +163,19 @@ namespace Starcounter.Database.Extensions
         /// <param name="db">The database context returned by EnterContext.</param>
         /// <param name="exceptionThrown">True if an exception was thrown when invoking the
         /// delegate; false otherwise.</param>
-        protected virtual void LeaveContext(IDatabaseContext db, bool exceptionThrown) { }
+        protected virtual void LeaveDatabaseContext(TTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown) { }
+
+        /// <summary>
+        /// Invoked right before a transaction creation and creates a decorator specific context.
+        /// Returns null by default.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual TTransactorContext EnterTransactorContext() => null;
+
+        /// <summary>
+        /// Invoked right after a transaction commit and outside of its scope.
+        /// This method is not invoked if the transaction fails.
+        /// </summary>
+        protected virtual void LeaveTransactorContext(TTransactorContext transactorContext) { }
     }
 }

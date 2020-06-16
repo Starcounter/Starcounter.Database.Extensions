@@ -1,21 +1,22 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Starcounter.Database.Extensions.IntegrationTests
 {
-    public sealed class PreCommitTransactorTests : ServicedTests
+    public sealed class PrePostCommitTransactorTests : ServicedTests
     {
-        public PreCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
+        public PrePostCommitTransactorTests(DatabaseExtensionsIntegrationTestContext context) : base(context) { }
 
         [Database]
         public abstract class Person { }
 
         [Fact]
-        public void TriggerHookOnInsert()
+        public void TriggerHooksOnInsert()
         {
-            var hooked = new List<ulong>();
+            var preHooked = new List<ulong>();
+            var postHooked = new List<ulong>();
 
             // Given
             var services = CreateServices
@@ -23,9 +24,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 serviceCollection => serviceCollection
                     .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
                     {
-                        hooked.Add(change.Oid);
+                        preHooked.Add(change.Oid);
+                    }))
+                    .Configure<PostCommitOptions>(o => o.Hook<Person>(change => 
+                    {
+                        postHooked.Add(change.Oid);
                     }))
                     .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, PostCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
@@ -34,19 +40,20 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             {
                 var p = db.Insert<Person>();
                 var id = db.GetOid(p);
-                return (hooked.Contains(id), id);
+                return (preHooked.Contains(id), id);
             });
 
             // Assert
-            var after = hooked.Contains(before.Id);
+            Assert.Single(preHooked);
+            Assert.Contains(before.Id, preHooked);
+            Assert.Equal(preHooked, postHooked);
             Assert.False(before.WasHooked);
-            Assert.True(after);
         }
 
         [Fact]
         public void DontInvokeHooksWhenTransactRaiseException()
         {
-            var hooked = new List<ulong>();
+            var count = 0;
 
             // Given
             var services = CreateServices
@@ -54,9 +61,14 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 serviceCollection => serviceCollection
                     .Configure<PreCommitOptions>(o => o.Hook<Person>((db, change) =>
                     {
-                        hooked.Add(change.Oid);
+                        count++;
                     }))
+                    .Configure<PostCommitOptions>(o =>
+                    {
+                        o.Hook<Person>(_ => count++);
+                    })
                     .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, PostCommitTransactor>()
             );
             var transactor = services.GetRequiredService<ITransactor>();
 
@@ -70,9 +82,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             }));
 
             // Assert
-            var existInDatabase = transactor.Transact(db => db.Get<Person>(id) != null);
-            Assert.False(existInDatabase);
-            Assert.Empty(hooked);
+            Assert.Equal(0, count);
         }
     }
 }
