@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace Starcounter.Database.Extensions
 {
     public abstract class TransactorBase<TTransactorContext> : ITransactor
-        where TTransactorContext : class, ITransactorContext
+        where TTransactorContext : class
     {
         readonly ITransactor _inner;
 
@@ -15,57 +15,57 @@ namespace Starcounter.Database.Extensions
 
         public virtual void Transact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             _inner.Transact(db => ExecuteCallback(context, db, action), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
         }
 
         public virtual T Transact<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             var r = _inner.Transact(db => ExecuteCallback(context, db, function), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
             return r;
         }
 
         public async virtual Task TransactAsync(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             await _inner.TransactAsync(db => ExecuteCallback(context, db, action), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
         }
 
         public async virtual Task TransactAsync(Func<IDatabaseContext, Task> function, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
         }
 
         public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, T> function, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             var r = await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
             return r;
         }
 
         public async virtual Task<T> TransactAsync<T>(Func<IDatabaseContext, Task<T>> function, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             var r = await _inner.TransactAsync(db => ExecuteCallback(context, db, function), options);
-            LeftContext(context);
+            LeaveTransactorContext(context);
             return r;
         }
 
         public virtual bool TryTransact(Action<IDatabaseContext> action, TransactOptions options = null)
         {
-            var context = CreateTransactorContext();
+            var context = EnterTransactorContext();
             var r = _inner.TryTransact(db => ExecuteCallback(context, db, action), options);
             
             if (r)
             {
-                LeftContext(context);
+                LeaveTransactorContext(context);
             }
 
             return r;
@@ -73,7 +73,7 @@ namespace Starcounter.Database.Extensions
 
         protected virtual void ExecuteCallback(TTransactorContext transactorContext, IDatabaseContext db, Action<IDatabaseContext> action)
         {
-            var dbContext = EnterContext(transactorContext, db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exceptionThrown = false;
             try
             {
@@ -86,13 +86,13 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(transactorContext, dbContext, exceptionThrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exceptionThrown);
             }
         }
 
         protected virtual T ExecuteCallback<T>(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, T> function)
         {
-            var dbContext = EnterContext(transactorContext, db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
@@ -105,13 +105,13 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(transactorContext, dbContext, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
         protected virtual async Task ExecuteCallback(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, Task> function)
         {
-            var dbContext = EnterContext(transactorContext, db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
@@ -124,13 +124,13 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(transactorContext, dbContext, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
         protected virtual async Task<T> ExecuteCallback<T>(TTransactorContext transactorContext, IDatabaseContext db, Func<IDatabaseContext, Task<T>> function)
         {
-            var dbContext = EnterContext(transactorContext, db);
+            var dbContext = EnterDatabaseContext(transactorContext, db);
             bool exception_thrown = false;
             try
             {
@@ -143,7 +143,7 @@ namespace Starcounter.Database.Extensions
             }
             finally
             {
-                LeaveContext(transactorContext, dbContext, exception_thrown);
+                LeaveDatabaseContext(transactorContext, dbContext, exception_thrown);
             }
         }
 
@@ -154,7 +154,7 @@ namespace Starcounter.Database.Extensions
         /// </summary>
         /// <param name="db">The default database context</param>
         /// <returns>A database context that will be passed to the delegate.</returns>
-        protected virtual IDatabaseContext EnterContext(TTransactorContext transactorContext, IDatabaseContext db) => db;
+        protected virtual IDatabaseContext EnterDatabaseContext(TTransactorContext transactorContext, IDatabaseContext db) => db;
 
         /// <summary>
         /// Invoked right after the user delegate has been executed, but when we are still
@@ -163,19 +163,19 @@ namespace Starcounter.Database.Extensions
         /// <param name="db">The database context returned by EnterContext.</param>
         /// <param name="exceptionThrown">True if an exception was thrown when invoking the
         /// delegate; false otherwise.</param>
-        protected virtual void LeaveContext(TTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown) { }
+        protected virtual void LeaveDatabaseContext(TTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown) { }
+
+        /// <summary>
+        /// Invoked right before a transaction creation and creates a decorator specific context.
+        /// Returns null by default.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual TTransactorContext EnterTransactorContext() => null;
 
         /// <summary>
         /// Invoked right after a transaction commit and outside of its scope.
         /// This method is not invoked if the transaction fails.
         /// </summary>
-        protected virtual void LeftContext(TTransactorContext transactorContext) { }
-
-        /// <summary>
-        /// Creates a <see cref="TTransactorContext"/> instance required for <see cref="EnterContext(TTransactorContext, IDatabaseContext)"/> and <see cref="LeaveContext(TTransactorContext, IDatabaseContext, bool)"/> methods.
-        /// Returns null by default.
-        /// </summary>
-        /// <returns></returns>
-        protected virtual TTransactorContext CreateTransactorContext() => null;
+        protected virtual void LeaveTransactorContext(TTransactorContext transactorContext) { }
     }
 }

@@ -14,7 +14,7 @@ namespace Starcounter.Database.Extensions
             : base(transactor)
             => _hookOptions = postCommitHookOptions.Value;
 
-        protected override void LeaveContext(PostCommitTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
+        protected override void LeaveDatabaseContext(PostCommitTransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             transactorContext.Changes = new List<KeyValuePair<Type, Change>>();
 
@@ -26,7 +26,9 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected override void LeftContext(PostCommitTransactorContext transactorContext)
+        protected override PostCommitTransactorContext EnterTransactorContext() => new PostCommitTransactorContext();
+
+        protected override void LeaveTransactorContext(PostCommitTransactorContext transactorContext)
         {
             if (transactorContext.Changes?.Any() != true)
             {
@@ -46,7 +48,5 @@ namespace Starcounter.Database.Extensions
                 }
             }
         }
-
-        protected override PostCommitTransactorContext CreateTransactorContext() => new PostCommitTransactorContext();
     }
 }

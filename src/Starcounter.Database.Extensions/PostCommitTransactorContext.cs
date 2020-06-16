@@ -4,7 +4,7 @@ using Starcounter.Database.ChangeTracking;
 
 namespace Starcounter.Database.Extensions
 {
-    public class PostCommitTransactorContext : ITransactorContext
+    public class PostCommitTransactorContext
     {
         public List<KeyValuePair<Type, Change>> Changes { get; set; }
     }

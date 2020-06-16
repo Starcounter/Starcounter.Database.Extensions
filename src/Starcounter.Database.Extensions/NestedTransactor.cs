@@ -14,7 +14,7 @@ namespace Starcounter.Database.Extensions
     /// <c>NestedTransactor</c> as the most outer one in the decoration chain. 
     /// </remarks>
     /// </summary>
-    public class NestedTransactor : TransactorBase<ITransactorContext>, INestedTransactor
+    public class NestedTransactor : TransactorBase<object>, INestedTransactor
     {
         class NestingContext
         {
@@ -206,13 +206,13 @@ namespace Starcounter.Database.Extensions
             }
         }
 
-        protected override IDatabaseContext EnterContext(ITransactorContext transactorContext, IDatabaseContext db)
+        protected override IDatabaseContext EnterDatabaseContext(object transactorContext, IDatabaseContext db)
         {
             _current.Value = new NestingContext(db);
             return db;
         }
 
-        protected override void LeaveContext(ITransactorContext transactorContext, IDatabaseContext db, bool exceptionThrown)
+        protected override void LeaveDatabaseContext(object transactorContext, IDatabaseContext db, bool exceptionThrown)
         {
             try
             {
