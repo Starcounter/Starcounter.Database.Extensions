@@ -19,7 +19,6 @@ namespace Starcounter.Database.Extensions.IntegrationTests
         [Database]
         public abstract class DatabaseItem
         {
-            public abstract string Name { get; set; }
         }
 
         [Fact]
