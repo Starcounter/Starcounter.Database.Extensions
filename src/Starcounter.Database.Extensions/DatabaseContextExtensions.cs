@@ -13,7 +13,7 @@ namespace Starcounter.Database.Extensions
         public static Type GetUserDefinedType(this IDatabaseContext db, ulong oid)
         {
             var proxy = db.Get<object>(oid);
-            var type = proxy?.GetType()?.BaseType;
+            var type = proxy?.GetType().BaseType;
 
             return type;
         }
