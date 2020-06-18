@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 namespace Starcounter.Database.Extensions
 {
     public abstract class TransactorBase<TTransactorContext> : ITransactor
-        where TTransactorContext : class
     {
         readonly ITransactor _inner;
 
@@ -170,7 +169,7 @@ namespace Starcounter.Database.Extensions
         /// Returns null by default.
         /// </summary>
         /// <returns></returns>
-        protected virtual TTransactorContext EnterTransactorContext() => null;
+        protected virtual TTransactorContext EnterTransactorContext() => default;
 
         /// <summary>
         /// Invoked right after a transaction commit and outside of its scope.

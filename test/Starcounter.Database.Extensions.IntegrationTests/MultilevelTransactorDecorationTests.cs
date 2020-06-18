@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Starcounter.Database.ChangeTracking;
 using Xunit;
 
@@ -28,9 +29,9 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => { })
+                    .Configure<IOptions<OnCommitTransactorOptions<object>>>(o => { })
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
             )
             .GetRequiredService<ITransactor>();
 
@@ -46,7 +47,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 return deleted;
             });
 
-            Assert.IsType<PreCommitTransactor>(transactor);
+            Assert.IsType<OnCommitTransactor<object>>(transactor);
             Assert.True(result);
         }
 
@@ -56,8 +57,8 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Configure<PreCommitOptions>(o => { })
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Configure<OnCommitTransactor<object>>(o => { })
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
                     .Decorate<ITransactor, OnDeleteTransactor>()
             )
             .GetRequiredService<ITransactor>();
@@ -86,11 +87,18 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Configure<PreCommitOptions>(o =>
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes)
+                            {
+                                hooked.Add(change.Oid);
+                            }
+                            return null;
+                        };
                     })
             ).GetRequiredService<ITransactor>();
 
@@ -116,11 +124,18 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Configure<PreCommitOptions>(o =>
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes)
+                            {
+                                hooked.Add(change.Oid);
+                            }
+                            return null;
+                        };
                     })
             ).GetRequiredService<ITransactor>();
 
@@ -146,10 +161,17 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             (
                 serviceCollection => serviceCollection
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Decorate<ITransactor, PreCommitTransactor>()
-                    .Configure<PreCommitOptions>(o =>
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes)
+                            {
+                                hooked.Add(change.Oid);
+                            }
+                            return null;
+                        };
                     })
             ).GetRequiredService<ITransactor>();
 
@@ -162,7 +184,7 @@ namespace Starcounter.Database.Extensions.IntegrationTests
 
             var after = transactor.Transact(db => hooked.Contains(before.Id));
 
-            Assert.IsType<PreCommitTransactor>(transactor);
+            Assert.IsType<OnCommitTransactor<object>>(transactor);
             Assert.False(before.WasHooked);
             Assert.True(after);
         }
@@ -176,11 +198,18 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             var transactor = CreateServices
             (
                 serviceCollection => serviceCollection
-                    .Decorate<ITransactor, PreCommitTransactor>()
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Configure<PreCommitOptions>(o =>
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => recordedChanges.Push((change.Oid, change.Type)));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes.Where(x => x.Type != ChangeType.Delete))
+                            {
+                                recordedChanges.Push((change.Oid, change.Type));
+                            }
+                            return null;
+                        };
                     })
             ).GetRequiredService<ITransactor>();
 
@@ -218,10 +247,17 @@ namespace Starcounter.Database.Extensions.IntegrationTests
             (
                 serviceCollection => serviceCollection
                     .Decorate<ITransactor, OnDeleteTransactor>()
-                    .Decorate<ITransactor, PreCommitTransactor>()
-                    .Configure<PreCommitOptions>(o =>
+                    .Decorate<ITransactor, OnCommitTransactor<object>>()
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => recordedChanges.Push((change.Oid, change.Type)));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes.Where(x => x.Type != ChangeType.Delete))
+                            {
+                                recordedChanges.Push((change.Oid, change.Type));
+                            }
+                            return null;
+                        };
                     })
             ).GetRequiredService<ITransactor>();
 
@@ -244,15 +280,15 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                 return deleted;
             });
 
-            Assert.IsType<PreCommitTransactor>(transactor);
+            Assert.IsType<OnCommitTransactor<object>>(transactor);
             Assert.Equal(expectedChanges, recordedChanges);
             Assert.True(wasDeleted);
         }
 
         [Theory]
-        [InlineData(typeof(OnDeleteTransactor), typeof(PreCommitTransactor), typeof(NestedTransactor))]
-        [InlineData(typeof(PreCommitTransactor), typeof(OnDeleteTransactor), typeof(NestedTransactor))]
-        [InlineData(typeof(PreCommitTransactor), typeof(NestedTransactor), typeof(OnDeleteTransactor))]
+        [InlineData(typeof(OnDeleteTransactor), typeof(OnCommitTransactor<object>), typeof(NestedTransactor))]
+        [InlineData(typeof(OnCommitTransactor<object>), typeof(OnDeleteTransactor), typeof(NestedTransactor))]
+        [InlineData(typeof(OnCommitTransactor<object>), typeof(NestedTransactor), typeof(OnDeleteTransactor))]
         public void MixedTransactorDecorationSetupsPassCommonTests(Type transactorDecorator0, Type transactorDecorator1, Type transactorDecorator2)
         {
             var hooked = new List<ulong>();
@@ -263,9 +299,16 @@ namespace Starcounter.Database.Extensions.IntegrationTests
                     .Decorate(typeof(ITransactor), transactorDecorator0)
                     .Decorate(typeof(ITransactor), transactorDecorator1)
                     .Decorate(typeof(ITransactor), transactorDecorator2)
-                    .Configure<PreCommitOptions>(o =>
+                    .Configure<OnCommitTransactorOptions<object>>(o =>
                     {
-                        o.Hook<Person>((db, change) => hooked.Add(change.Oid));
+                        o.OnBeforeCommit = db =>
+                        {
+                            foreach (var change in db.ChangeTracker.Changes)
+                            {
+                                hooked.Add(change.Oid);
+                            }
+                            return null;
+                        };
                     })
             );
 
